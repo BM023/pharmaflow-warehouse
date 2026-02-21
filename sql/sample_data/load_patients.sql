@@ -1,0 +1,21 @@
+-- ============================================================================
+-- Patient Sample Data
+-- ============================================================================
+-- 
+-- NOTE: Patient data is generated using Python + Faker for better realism
+-- and scalability. Run the following script to generate 500 patients:
+-- 
+--   python python/generate_patients.py
+-- 
+-- This approach allows for:
+--   - Realistic name generation
+--   - Proper age distribution
+--   - Demographic-based pharmacy assignment
+--   - Medical aid distribution
+--   - Chronic patient patterns
+-- 
+-- Manual SQL inserts for 500+ patients would be impractical.
+-- ============================================================================
+
+-- To verify patients are loaded:
+-- SELECT COUNT(*) FROM dwh.dim_patient;
