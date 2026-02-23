@@ -1,4 +1,3 @@
-
 CREATE TABLE dwh.dim_doctor (
     doctor_key SERIAL PRIMARY KEY,
     doctor_id VARCHAR(20) NOT NULL UNIQUE,

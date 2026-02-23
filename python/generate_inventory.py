@@ -213,9 +213,9 @@ def generate_inventory_snapshots(medications, pharmacies, days=30):
                 
                 # Stock status
                 if quantity_available <= 0:
-                    stock_status = 'OUT_OF_STOCK'
+                    stock_status = 'OUT'
                 elif quantity_available <= stock['reorder_point']:
-                    stock_status = 'LOW_STOCK'
+                    stock_status = 'LOW'
                 elif stock['quantity'] > stock['max_stock']:
                     stock_status = 'OVERSTOCKED'
                 elif quantity_near_expiry > int(stock['quantity'] * 0.2):

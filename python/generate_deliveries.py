@@ -257,6 +257,7 @@ def generate_deliveries(suppliers, medications, pharmacies, num_deliveries=500):
             'unit_cost': round(unit_cost, 2),
             'total_cost': total_cost,
             'expiry_date': expiry_date,
+            'shelf_life_days_at_delivery': (expiry_date - actual_delivery_date).days,
             'delivery_lead_time_days': delivery_lead_time,
             'variance_cost': variance_cost,
             'is_on_time': is_on_time,
@@ -290,7 +291,7 @@ def insert_deliveries(deliveries):
             batch_number, delivery_status,
             quantity_ordered, quantity_delivered, quantity_damaged, quantity_rejected,
             unit_cost, total_cost, expiry_date,
-            delivery_lead_time_days, variance_cost,
+            shelf_life_days_at_delivery, delivery_lead_time_days, variance_cost,
             is_on_time, quality_issue_flag,
             ordered_timestamp, expected_delivery_date, actual_delivery_timestamp,
             received_by
@@ -301,7 +302,7 @@ def insert_deliveries(deliveries):
             %(batch_number)s, %(delivery_status)s,
             %(quantity_ordered)s, %(quantity_delivered)s, %(quantity_damaged)s, %(quantity_rejected)s,
             %(unit_cost)s, %(total_cost)s, %(expiry_date)s,
-            %(delivery_lead_time_days)s, %(variance_cost)s,
+            %(shelf_life_days_at_delivery)s, %(delivery_lead_time_days)s, %(variance_cost)s,
             %(is_on_time)s, %(quality_issue_flag)s,
             %(ordered_timestamp)s, %(expected_delivery_date)s, %(actual_delivery_timestamp)s,
             %(received_by)s

@@ -29,7 +29,7 @@ DB_CONFIG = {
 }
 
 PRESCRIPTION_TYPES = ['New', 'Refill', 'Emergency']
-PAYMENT_METHODS = ['Cash', 'Medical Aid', 'Both']
+PAYMENT_METHODS = ['Cash', 'Medical_Aid', 'Both']
 
 
 def get_reference_data():
@@ -233,7 +233,7 @@ def generate_prescription_transactions(patients, medications, doctors, pharmacie
             insurance_coverage = round(total_amount * coverage_pct, 2)
             patient_copay = round(total_amount - insurance_coverage, 2)
             discount_amount = 0.00
-            payment_method = 'Medical Aid'
+            payment_method = 'Medical_Aid'
         else:
             insurance_key = None
             insurance_coverage = 0.00

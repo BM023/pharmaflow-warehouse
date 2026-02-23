@@ -54,11 +54,30 @@ PharmaFlow Analytics simulates a mid-sized pharmacy chain with 5 locations acros
 ```
 pharmaflow_warehouse/
 ├── sql/
-│   ├── 01_setup/
-│   ├── 02_dimensions/
-│   ├── 03_facts/
-│   ├── 04_sample_data/
-│   └── 00_master/
+│   ├── transactions/
+│   │   ├── generate_deliveries.sql
+│   │   ├── generate_inventory.sql
+│   │   └── export_perscriptions.sql
+│   ├── dimensions/
+│   │   ├── dim_date.sql
+│   │   ├── dim_doctor.sql
+│   │   ├── dim_insurance.sql
+│   │   ├── dim_supplier.sql
+│   │   ├── dim_medication.sql
+│   │   ├── dim_medication_category.sql
+│   │   ├── dim_patient.sql
+│   │   └── dim_pharmacy.sql
+│   ├── facts/
+│   │   ├── fact_prescription_transactions.sql
+│   │   ├── fact_inventory_snapshots.sql
+│   │   ├── fact_supplier_deliveries.sql
+│   │   └── fact_stock_adjustments.sql
+│   └── sample_data/
+│       ├── load_doctors.sql
+│       ├── load_medications.sql
+│       ├── load_insurance.sql
+│       ├── load_patients.sql
+│       └── load_suppliers.sql
 ├── python/
 │   ├── generate_patients.py
 │   ├── generate_prescriptions.py
@@ -70,12 +89,23 @@ pharmaflow_warehouse/
 │   ├── monitor_files.sh
 │   ├── process_file.sh
 │   ├── cleanup_logs.sh
+│   ├── steup_cron.sh
 │   └── run_pipeline.sh
+├── setup/
+│   └── schema.sql
 ├── raw_data/
 ├── staging/
 ├── processed/
 ├── archive/
-└── logs/
+├── logs/
+├── docker/
+│   └──  docker-compose.yml
+├── venv/ 
+├── .venv/ 
+├── .env
+├── requirements.txt
+├── README.md
+└── .gitignore
 ```
 
 ## Setup Instructions
@@ -171,10 +201,81 @@ python python/export_sample_files.py
 
 ## Author
 
-Boikanyo Mazwi  
+Boikanyo Maswi  
 Data Engineering Portfolio Project  
 February 2026
 
 ## License
 
 This project is for educational and portfolio purposes.
+
+
+
+
+
+```
+pharmaflow_warehouse/
+├── sql/
+│   ├── transactions/
+│   │   ├── generate_deliveries.sql  (EMPTY)
+│   │   ├── generate_inventory.sql  (EMPTY)
+│   │   └── export_perscriptions.sql  (EMPTY)
+│   ├── dimensions/
+│   │   ├── dim_date.sql
+│   │   ├── dim_doctor.sql
+│   │   ├── dim_insurance.sql
+│   │   ├── dim_supplier.sql
+│   │   ├── dim_medication.sql
+│   │   ├── dim_medication_category.sql
+│   │   ├── dim_patient.sql
+│   │   └── dim_pharmacy.sql
+│   ├── facts/
+│   │   ├── fact_prescription_transactions.sql
+│   │   ├── fact_inventory_snapshots.sql
+│   │   ├── fact_supplier_deliveries.sql
+│   │   └── fact_stock_adjustments.sql
+│   └── sample_data/
+│       ├── load_doctors.sql
+│       ├── load_medications.sql
+│       ├── load_insurance.sql
+│       ├── load_patients.sql
+│       └── load_suppliers.sql
+├── python/
+│   ├── generate_patients.py
+│   ├── generate_prescriptions.py
+│   ├── generate_inventory.py
+│   ├── generate_deliveries.py
+│   ├── generate_adjustments.py
+│   └── export_sample_files.py
+├── scripts/
+│   ├── monitor_files.sh   (EMPTY)
+│   ├── process_file.sh  (EMPTY)
+│   ├── cleanup_logs.sh  (EMPTY)
+│   ├── steup_cron.sh  (EMPTY)
+│   └── run_pipeline.sh  (EMPTY)
+├── setup/
+│   └── schema.sql   (EMPTY)
+├── raw_data/  (NOT VISIBLE IN REPO)
+│   ├── 2026-02-20
+│   │   ├── inventory_snapshot_2026-02-20.xlsx
+│   │   ├── medication_catalog.json
+│   │   └── perscriptions_2026-02-20.csv
+│   └── 2026-02-21
+│       ├── inventory_snapshot_2026-02-21.xlsx
+│       ├── medication_catalog.json
+│       ├── perscriptions_2026-02-21.csv
+│       ├── new_patients.csv
+│       └── README.md
+├── staging/  (EMPTY AND NOT VISIBLE IN REPO)
+├── processed/  (EMPTY AND NOT VISIBLE IN REPO)
+├── archive/   (EMPTY AND NOT VISIBLE IN REPO)
+├── logs/   (EMPTY AND NOT VISIBLE IN REPO)
+├── docker/
+│   └──  docker-compose.yml   (EMPTY)
+├── .venv/  (NOT VISIBLE IN REPO)
+├── venv/   (NOT VISIBLE IN REPO)
+├── .env   (NOT VISIBLE IN REPO)
+├── requirements.txt
+├── README.md
+└── .gitignore
+```

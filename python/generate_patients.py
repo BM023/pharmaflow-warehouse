@@ -144,7 +144,7 @@ def generate_patient_data(num_patients=500):
         date_of_birth = datetime.now().date() - timedelta(days=age*365 + random.randint(0, 364))
         
         # Generate patient ID (SA ID number format)
-        patient_id = generate_sa_id_number(date_of_birth, gender)
+        patient_id = generate_sa_id_number(date_of_birth, gender, sequence_override=i % 1000)
         
         # Name generation
         if gender == 'Male':
@@ -188,7 +188,7 @@ def generate_patient_data(num_patients=500):
         registration_date = datetime.now().date() - timedelta(days=days_ago)
         
         # Contact information
-        phone_number = fake.phone_number() if random.random() > 0.05 else None
+        phone_number = f'+27 {random.randint(10,99)} {random.randint(100,999)} {random.randint(1000,9999)}' if random.random() > 0.05 else None
         email = fake.email() if random.random() > 0.20 and age >= 18 else None
         
         patient = {
@@ -205,7 +205,7 @@ def generate_patient_data(num_patients=500):
             'suburb': suburb,
             'city': 'Johannesburg',
             'province': 'Gauteng',
-            'postal_code': fake.postcode(),
+            'postal_code': f'{random.randint(1000, 9999)}',
             'primary_pharmacy_key': pharmacy_key,
             'patient_type': patient_type,
             'registration_date': registration_date,
@@ -317,6 +317,17 @@ def insert_patients(patients):
         cur.close()
         conn.close()
 
+def generate_sa_id_number(date_of_birth, gender, sequence_override=None):
+    yy = date_of_birth.strftime('%y')
+    mm = date_of_birth.strftime('%m')
+    dd = date_of_birth.strftime('%d')
+    gender_digit = random.randint(5, 9) if gender == 'Male' else random.randint(0, 4)
+    sequence = f"{sequence_override:03d}" if sequence_override is not None else f"{random.randint(0, 999):03d}"
+    citizenship = '0'
+    a_digit = '8'
+    id_number = f"{yy}{mm}{dd}{gender_digit}{sequence}{citizenship}{a_digit}"
+    checksum = str(sum(int(d) for d in id_number) % 10)
+    return id_number + checksum
 
 def main():
     """Main execution function"""
