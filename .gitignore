@@ -46,4 +46,4 @@ Thumbs.db
 airflow/logs/
 airflow/*.pid
 airflow/*.err
-airflow/*.out
+airflow/*.outairflow/logs/**

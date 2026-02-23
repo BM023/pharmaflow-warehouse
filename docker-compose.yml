@@ -1,0 +1,187 @@
+# =============================================================================
+# docker-compose.yml
+# PharmaFlow Analytics — Full Stack
+#
+# Services:
+#   pharmaflow-db    PostgreSQL 15 — data warehouse (your existing container)
+#   airflow-db       PostgreSQL 15 — Airflow metadata store
+#   airflow-init     One-time Airflow setup (DB init + admin user creation)
+#   airflow-webserver Airflow UI  → http://localhost:8080
+#   airflow-scheduler DAG scheduler
+#
+# Usage:
+#   docker compose up -d              # start everything
+#   docker compose down               # stop everything (data preserved)
+#   docker compose down -v            # stop + delete volumes (destructive)
+#   docker compose logs -f airflow-scheduler
+#
+# Airflow UI credentials: admin / pharmaflow2024
+# =============================================================================
+
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.8.1
+  platform: linux/arm64
+  user: "${AIRFLOW_UID:-50000}:0"
+  environment: &airflow-env
+    _PIP_ADDITIONAL_REQUIREMENTS: 'psycopg2-binary pandas openpyxl python-dotenv'
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__FERNET_KEY: 'ZmDfcTF7_60GrrY167zsiPd67pEvs0aGOv2oasOM1Pg='
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__CORE__DEFAULT_TIMEZONE: 'Africa/Johannesburg'
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow2024@airflow-db:5432/airflow
+    AIRFLOW__WEBSERVER__SECRET_KEY: 'pharmaflow-secret-2024'
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
+    AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+    # PharmaFlow warehouse connection (available to all DAGs as env vars)
+    PHARMAFLOW_DB_HOST: pharmaflow-db
+    PHARMAFLOW_DB_PORT: '5432'
+    PHARMAFLOW_DB_NAME: pharmaflow_warehouse
+    PHARMAFLOW_DB_USER: pharmaflow
+    PHARMAFLOW_DB_PASSWORD: pharmaflow2024
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/logs:/opt/airflow/logs
+    - ./airflow/plugins:/opt/airflow/plugins
+    - ./python:/opt/airflow/python          # ETL modules available to DAGs
+    - ./scripts:/opt/airflow/scripts        # Shell scripts available to DAGs
+    - ./raw_data:/opt/airflow/raw_data      # File drop zone
+    - ./staging:/opt/airflow/staging
+    - ./processed:/opt/airflow/processed
+    - ./archive:/opt/airflow/archive
+    - ./logs:/opt/airflow/pipeline_logs
+  depends_on:
+    airflow-db:
+      condition: service_healthy
+  networks:
+    - pharmaflow-network
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PharmaFlow Data Warehouse
+  # Reuses your existing named volume — all your data is preserved
+  # ---------------------------------------------------------------------------
+  pharmaflow-db:
+    image: postgres:15
+    platform: linux/arm64
+    container_name: pharmaflow-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pharmaflow
+      POSTGRES_PASSWORD: pharmaflow2024
+      POSTGRES_DB: pharmaflow_warehouse
+    ports:
+      - "5433:5432"
+    volumes:
+      - pharmaflow-data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d/sql   # schema available inside container
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pharmaflow -d pharmaflow_warehouse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pharmaflow-network
+
+  # ---------------------------------------------------------------------------
+  # Airflow Metadata Database (separate from your warehouse)
+  # ---------------------------------------------------------------------------
+  airflow-db:
+    image: postgres:15
+    platform: linux/arm64
+    container_name: airflow-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow2024
+      POSTGRES_DB: airflow
+    ports:
+      - "5434:5432"
+    volumes:
+      - airflow-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pharmaflow-network
+
+  # ---------------------------------------------------------------------------
+  # Airflow Init — runs once to set up DB and create admin user
+  # ---------------------------------------------------------------------------
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate
+        airflow users create \
+          --username admin \
+          --firstname PharmaFlow \
+          --lastname Admin \
+          --role Admin \
+          --email admin@pharmaflow.co.za \
+          --password pharmaflow2024
+        echo "Airflow initialised successfully."
+    restart: "no"
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Airflow Webserver → http://localhost:8080
+  # ---------------------------------------------------------------------------
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow-webserver
+    restart: unless-stopped
+    command: webserver
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+  # ---------------------------------------------------------------------------
+  # Airflow Scheduler
+  # ---------------------------------------------------------------------------
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow-scheduler
+    restart: unless-stopped
+    command: scheduler
+    healthcheck:
+      test: ["CMD", "airflow", "jobs", "check", "--job-type", "SchedulerJob", "--hostname", "$${HOSTNAME}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+
+# -----------------------------------------------------------------------------
+# Volumes
+# -----------------------------------------------------------------------------
+volumes:
+  pharmaflow-data:
+    external: true      # reuses your existing named volume — data preserved
+  airflow-db-data:
+    driver: local
+
+# -----------------------------------------------------------------------------
+# Networks
+# -----------------------------------------------------------------------------
+networks:
+  pharmaflow-network:
+    driver: bridge

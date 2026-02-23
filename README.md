@@ -220,6 +220,7 @@ pharmaflow_warehouse/
 │   │   ├── generate_deliveries.sql  (EMPTY)
 │   │   ├── generate_inventory.sql  (EMPTY)
 │   │   └── export_perscriptions.sql  (EMPTY)
+│   │
 │   ├── dimensions/
 │   │   ├── dim_date.sql
 │   │   ├── dim_doctor.sql
@@ -229,52 +230,64 @@ pharmaflow_warehouse/
 │   │   ├── dim_medication_category.sql
 │   │   ├── dim_patient.sql
 │   │   └── dim_pharmacy.sql
+│   │
 │   ├── facts/
 │   │   ├── fact_prescription_transactions.sql
 │   │   ├── fact_inventory_snapshots.sql
 │   │   ├── fact_supplier_deliveries.sql
 │   │   └── fact_stock_adjustments.sql
+│   │
 │   └── sample_data/
 │       ├── load_doctors.sql
 │       ├── load_medications.sql
 │       ├── load_insurance.sql
 │       ├── load_patients.sql
 │       └── load_suppliers.sql
+│
 ├── python/
 │   ├── generate_patients.py
 │   ├── generate_prescriptions.py
 │   ├── generate_inventory.py
 │   ├── generate_deliveries.py
 │   ├── generate_adjustments.py
-│   └── export_sample_files.py
+│   ├── export_sample_files.py
+│   └── etl/
+│       ├── __init__.py
+│       ├── extract.py 
+│       ├── transform.py
+│       └── load.py
+│
 ├── scripts/
 │   ├── monitor_files.sh   (EMPTY)
 │   ├── process_file.sh  (EMPTY)
 │   ├── cleanup_logs.sh  (EMPTY)
 │   ├── steup_cron.sh  (EMPTY)
 │   └── run_pipeline.sh  (EMPTY)
+│
 ├── setup/
-│   └── schema.sql   (EMPTY)
+│   └── schema.sql
+│
 ├── raw_data/  (NOT VISIBLE IN REPO)
 │   ├── 2026-02-20
 │   │   ├── inventory_snapshot_2026-02-20.xlsx
 │   │   ├── medication_catalog.json
 │   │   └── perscriptions_2026-02-20.csv
+│   │
 │   └── 2026-02-21
 │       ├── inventory_snapshot_2026-02-21.xlsx
 │       ├── medication_catalog.json
 │       ├── perscriptions_2026-02-21.csv
 │       ├── new_patients.csv
 │       └── README.md
-├── staging/  (EMPTY AND NOT VISIBLE IN REPO)
-├── processed/  (EMPTY AND NOT VISIBLE IN REPO)
-├── archive/   (EMPTY AND NOT VISIBLE IN REPO)
-├── logs/   (EMPTY AND NOT VISIBLE IN REPO)
-├── docker/
-│   └──  docker-compose.yml   (EMPTY)
-├── .venv/  (NOT VISIBLE IN REPO)
-├── venv/   (NOT VISIBLE IN REPO)
-├── .env   (NOT VISIBLE IN REPO)
+│
+├── staging/
+├── processed/
+├── archive/
+├── logs/
+├── docker-compose.yml
+├── .venv/
+├── venv/
+├── .env
 ├── requirements.txt
 ├── README.md
 └── .gitignore
