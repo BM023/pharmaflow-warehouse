@@ -33,7 +33,8 @@ logger = logging.getLogger(__name__)
 default_args = {
     'owner':            'pharmaflow',
     'depends_on_past':  False,
-    'email_on_failure': False,   # set to True and add email when ready
+    'email':            ['boikanyo.m0040@icloud.com'],
+    'email_on_failure': True,
     'email_on_retry':   False,
     'retries':          2,
     'retry_delay':      timedelta(minutes=5),
@@ -46,7 +47,7 @@ default_args = {
 # ---------------------------------------------------------------------------
 with DAG(
     dag_id='pharmaflow_daily_etl',
-    default_args=default_args,
+    default_args = default_args,
     description='PharmaFlow daily ETL: file drop → extract → transform → validate → load → cleanup',
     schedule_interval='30 6 * * *',   # 06:30 daily (files generated at 06:00 by cron)
     start_date=days_ago(1),
@@ -168,6 +169,7 @@ Processes daily pharmacy transaction files through a full ETL lifecycle.
     # Task 5: Validate
     # -----------------------------------------------------------------------
     def validate_task(**context):
+        raise ValueError("TEST FAILURE — delete this line after confirming email alert works.")
         """
         Data quality gate — fails the DAG if critical checks don't pass.
         Checks:
@@ -264,7 +266,7 @@ Processes daily pharmacy transaction files through a full ETL lifecycle.
     # -----------------------------------------------------------------------
     cleanup = BashOperator(
         task_id='cleanup',
-        bash_command='/opt/airflow/scripts/cleanup_logs.sh',
+        bash_command='bash /opt/airflow/scripts/cleanup_logs.sh ',
         doc_md="Archives processed files and rotates logs older than 30 days.",
     )
 

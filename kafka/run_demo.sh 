@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# =============================================================================
+# kafka/run_demo.sh
+# PharmaFlow Analytics — Kafka Streaming Demo
+#
+# Starts all producers and consumers in parallel for a live demo.
+# Each process logs to logs/kafka_<name>_<date>.log
+#
+# Usage:
+#   ./kafka/run_demo.sh              # run indefinitely
+#   ./kafka/run_demo.sh --count 50   # send 50 messages per producer then stop
+#   ./kafka/run_demo.sh --stop       # stop all running kafka processes
+# =============================================================================
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+LOG_DIR="${PROJECT_ROOT}/logs"
+VENV_PYTHON="${PROJECT_ROOT}/venv/bin/python"
+DATE_STR="$(date +%Y-%m-%d)"
+COUNT_ARG=""
+
+mkdir -p "${LOG_DIR}"
+
+# Parse args
+for arg in "$@"; do
+    case $arg in
+        --count) COUNT_ARG="--count ${2:-50}" ; shift ;;
+        --stop)
+            echo "Stopping all PharmaFlow Kafka processes..."
+            pkill -f "prescription_producer" 2>/dev/null || true
+            pkill -f "inventory_producer"    2>/dev/null || true
+            pkill -f "patient_producer"      2>/dev/null || true
+            pkill -f "delivery_producer"     2>/dev/null || true
+            pkill -f "prescription_consumer" 2>/dev/null || true
+            pkill -f "inventory_consumer"    2>/dev/null || true
+            pkill -f "patient_consumer"      2>/dev/null || true
+            echo "Done."
+            exit 0
+            ;;
+    esac
+done
+
+echo "============================================"
+echo " PharmaFlow Kafka Streaming Demo"
+echo " Date: ${DATE_STR}"
+echo " Logs: ${LOG_DIR}/kafka_*_${DATE_STR}.log"
+echo "============================================"
+echo ""
+echo "Starting consumers (reading from Kafka → raw_data/)..."
+
+# Start consumers in background
+"${VENV_PYTHON}" "${SCRIPT_DIR}/consumers/prescription_consumer.py" \
+    >> "${LOG_DIR}/kafka_rx_consumer_${DATE_STR}.log" 2>&1 &
+echo "  Prescription consumer started (PID $!)"
+
+"${VENV_PYTHON}" "${SCRIPT_DIR}/consumers/inventory_consumer.py" \
+    >> "${LOG_DIR}/kafka_inv_consumer_${DATE_STR}.log" 2>&1 &
+echo "  Inventory consumer started (PID $!)"
+
+"${VENV_PYTHON}" "${SCRIPT_DIR}/consumers/patient_consumer.py" \
+    >> "${LOG_DIR}/kafka_pat_consumer_${DATE_STR}.log" 2>&1 &
+echo "  Patient consumer started (PID $!)"
+
+sleep 2
+echo ""
+echo "Starting producers (generating events → Kafka)..."
+
+# Start producers in background
+"${VENV_PYTHON}" "${SCRIPT_DIR}/producers/prescription_producer.py" ${COUNT_ARG} \
+    >> "${LOG_DIR}/kafka_rx_producer_${DATE_STR}.log" 2>&1 &
+echo "  Prescription producer started (PID $!) — 10 msgs/min"
+
+"${VENV_PYTHON}" "${SCRIPT_DIR}/producers/inventory_producer.py" ${COUNT_ARG} \
+    >> "${LOG_DIR}/kafka_inv_producer_${DATE_STR}.log" 2>&1 &
+echo "  Inventory producer started (PID $!) — 3 msgs/min"
+
+"${VENV_PYTHON}" "${SCRIPT_DIR}/producers/patient_producer.py" ${COUNT_ARG} \
+    >> "${LOG_DIR}/kafka_pat_producer_${DATE_STR}.log" 2>&1 &
+echo "  Patient producer started (PID $!) — 1 msg/min"
+
+"${VENV_PYTHON}" "${SCRIPT_DIR}/producers/delivery_producer.py" ${COUNT_ARG} \
+    >> "${LOG_DIR}/kafka_del_producer_${DATE_STR}.log" 2>&1 &
+echo "  Delivery producer started (PID $!) — 1 msg/min"
+
+echo ""
+echo "============================================"
+echo " All processes running."
+echo " Watch live: tail -f logs/kafka_rx_producer_${DATE_STR}.log"
+echo " Stop all:   ./kafka/run_demo.sh --stop"
+echo "============================================"

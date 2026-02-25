@@ -33,7 +33,15 @@ x-airflow-common: &airflow-common
     AIRFLOW__WEBSERVER__SECRET_KEY: 'pharmaflow-secret-2024'
     AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
-    # PharmaFlow warehouse connection (available to all DAGs as env vars)
+    # iCloud SMTP settings for email alerts for monitoring
+    AIRFLOW__SMTP__SMTP_HOST: smtp.mail.me.com
+    AIRFLOW__SMTP__SMTP_STARTTLS: 'true'
+    AIRFLOW__SMTP__SMTP_SSL: 'false'
+    AIRFLOW__SMTP__SMTP_USER: boikanyo.m0040@icloud.com
+    AIRFLOW__SMTP__SMTP_PASSWORD: vvej-dnek-gpzj-krse
+    AIRFLOW__SMTP__SMTP_PORT: '587'
+    AIRFLOW__SMTP__SMTP_MAIL_FROM: boikanyo.m0040@icloud.com
+    # PharmaFlow warehouse connection (env vars)
     PHARMAFLOW_DB_HOST: pharmaflow-db
     PHARMAFLOW_DB_PORT: '5432'
     PHARMAFLOW_DB_NAME: pharmaflow_warehouse
@@ -170,13 +178,91 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
+  # ---------------------------------------------------------------------------
+  # Zookeeper — Kafka coordination service
+  # ---------------------------------------------------------------------------
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    platform: linux/arm64
+    container_name: zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    networks:
+      - pharmaflow-network
+
+  # ---------------------------------------------------------------------------
+  # Kafka Broker
+  # ---------------------------------------------------------------------------
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    platform: linux/arm64
+    container_name: kafka
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"       # internal (producer/consumer inside Docker)
+      - "9093:9093"       # external (producer/consumer on your Mac)
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_LOG_RETENTION_HOURS: 168      # 7 days
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - pharmaflow-network
+
+  # ---------------------------------------------------------------------------
+  # Kafka UI — browser-based topic/message viewer → http://localhost:8090
+  # ---------------------------------------------------------------------------
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.1
+    platform: linux/arm64
+    container_name: kafka-ui
+    restart: unless-stopped
+    depends_on:
+      - kafka
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: pharmaflow-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    networks:
+      - pharmaflow-network
+
 # -----------------------------------------------------------------------------
 # Volumes
 # -----------------------------------------------------------------------------
 volumes:
   pharmaflow-data:
-    external: true      # reuses your existing named volume — data preserved
+    external: true
   airflow-db-data:
+    driver: local
+  zookeeper-data:
+    driver: local
+  zookeeper-logs:
+    driver: local
+  kafka-data:
     driver: local
 
 # -----------------------------------------------------------------------------
@@ -185,3 +271,4 @@ volumes:
 networks:
   pharmaflow-network:
     driver: bridge
+

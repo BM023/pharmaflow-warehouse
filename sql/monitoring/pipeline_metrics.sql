@@ -55,8 +55,8 @@ ORDER BY run_date DESC;
 CREATE OR REPLACE VIEW dwh.v_warehouse_growth AS
 SELECT
     d.full_date                                         AS snapshot_date,
-    COUNT(f.prescription_key)                           AS prescriptions_on_day,
-    SUM(COUNT(f.prescription_key)) OVER (
+    COUNT(f.prescription_transaction_key)               AS prescriptions_on_day,
+    SUM(COUNT(f.prescription_transaction_key)) OVER (
         ORDER BY d.full_date
         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
     )                                                   AS cumulative_prescriptions,
@@ -106,7 +106,7 @@ CREATE OR REPLACE VIEW dwh.v_revenue_by_pharmacy AS
 SELECT
     ph.location_name,
     ph.demographic_profile,
-    COUNT(f.prescription_key)                           AS prescription_count,
+    COUNT(f.prescription_transaction_key)               AS prescription_count,
     SUM(f.total_amount)                                 AS total_revenue,
     SUM(f.profit_margin)                                AS total_profit,
     ROUND(AVG(f.total_amount), 2)                       AS avg_transaction,
@@ -128,7 +128,7 @@ SELECT
     m.therapeutic_class,
     c.clinical_category,
     c.movement_class,
-    COUNT(f.prescription_key)                           AS prescription_count,
+    COUNT(f.prescription_transaction_key)               AS prescription_count,
     SUM(f.quantity_dispensed)                           AS total_units,
     SUM(f.total_amount)                                 AS total_revenue,
     ROUND(AVG(f.total_amount), 2)                       AS avg_revenue_per_rx

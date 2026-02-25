@@ -17,7 +17,7 @@ env/
 *.sqlite
 *.sql.gz
 
-# Data files (don't commit large data files)
+# Data files
 raw_data/
 staging/
 processed/

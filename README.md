@@ -217,9 +217,9 @@ This project is for educational and portfolio purposes.
 pharmaflow_warehouse/
 ├── sql/
 │   ├── transactions/
-│   │   ├── generate_deliveries.sql  (EMPTY)
-│   │   ├── generate_inventory.sql  (EMPTY)
-│   │   └── export_perscriptions.sql  (EMPTY)
+│   │   ├── generate_deliveries.sql
+│   │   ├── generate_inventory.sql
+│   │   └── export_perscriptions.sql
 │   │
 │   ├── dimensions/
 │   │   ├── dim_date.sql
@@ -258,16 +258,16 @@ pharmaflow_warehouse/
 │       └── load.py
 │
 ├── scripts/
-│   ├── monitor_files.sh   (EMPTY)
-│   ├── process_file.sh  (EMPTY)
-│   ├── cleanup_logs.sh  (EMPTY)
-│   ├── steup_cron.sh  (EMPTY)
-│   └── run_pipeline.sh  (EMPTY)
+│   ├── monitor_files.sh
+│   ├── process_file.sh
+│   ├── cleanup_logs.sh
+│   ├── steup_cron.sh
+│   └── run_pipeline.sh
 │
 ├── setup/
 │   └── schema.sql
 │
-├── raw_data/  (NOT VISIBLE IN REPO)
+├── raw_data/
 │   ├── 2026-02-20
 │   │   ├── inventory_snapshot_2026-02-20.xlsx
 │   │   ├── medication_catalog.json
@@ -279,6 +279,20 @@ pharmaflow_warehouse/
 │       ├── perscriptions_2026-02-21.csv
 │       ├── new_patients.csv
 │       └── README.md
+│
+├── kafka/
+│   ├── producers/
+│   │   ├── prescription_producer.py
+│   │   ├── inventory_producer.py
+│   │   ├── patient_producer.py
+│   │   └── delivery_producer.py
+│   ├── consumers/
+│   │   ├── prescription_consumer.py
+│   │   ├── inventory_consumer.py
+│   │   ├── patient_consumer.py
+│   │   └── delivery_consumer.py
+│   ├── kafka_config.py
+│   └── run_demo.sh
 │
 ├── staging/
 ├── processed/
@@ -292,3 +306,6 @@ pharmaflow_warehouse/
 ├── README.md
 └── .gitignore
 ```
+
+
+
