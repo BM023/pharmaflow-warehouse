@@ -169,7 +169,6 @@ Processes daily pharmacy transaction files through a full ETL lifecycle.
     # Task 5: Validate
     # -----------------------------------------------------------------------
     def validate_task(**context):
-        raise ValueError("TEST FAILURE — delete this line after confirming email alert works.")
         """
         Data quality gate — fails the DAG if critical checks don't pass.
         Checks:
