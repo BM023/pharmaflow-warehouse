@@ -25,11 +25,11 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 DB_CONFIG = {
-    'host':     os.getenv('DB_HOST', 'localhost'),
-    'port':     os.getenv('DB_PORT', '5433'),
-    'database': os.getenv('DB_NAME', 'pharmaflow_warehouse'),
-    'user':     os.getenv('DB_USER', 'pharmaflow'),
-    'password': os.getenv('DB_PASSWORD', 'pharmaflow2024'),
+    'host':     os.getenv('PHARMAFLOW_DB_HOST', os.getenv('DB_HOST', 'localhost')),
+    'port':     os.getenv('PHARMAFLOW_DB_PORT', os.getenv('DB_PORT', '5433')),
+    'database': os.getenv('PHARMAFLOW_DB_NAME', os.getenv('DB_NAME', 'pharmaflow_warehouse')),
+    'user':     os.getenv('PHARMAFLOW_DB_USER', os.getenv('DB_USER', 'pharmaflow')),
+    'password': os.getenv('PHARMAFLOW_DB_PASSWORD', os.getenv('DB_PASSWORD', 'pharmaflow2024')),
 }
 
 BATCH_SIZE = 500
