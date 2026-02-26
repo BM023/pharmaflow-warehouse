@@ -13,10 +13,8 @@ Run: streamlit run dashboard/app.py
 import os
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-from datetime import datetime, timedelta
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -35,19 +33,19 @@ st.set_page_config(
 # Palette & Theme
 # ---------------------------------------------------------------------------
 COLORS = {
-    "forest":      "#1B4332",   # deep forest green — primary accent
-    "hunter":      "#2D6A4F",   # hunter green — secondary
-    "fern":        "#40916C",   # fern — mid tone
-    "sage":        "#74C69D",   # sage — light accent
-    "mint":        "#B7E4C7",   # mint — soft highlight
-    "mist":        "#D8F3DC",   # mist — very light green
-    "parchment":   "#F8F4EF",   # warm off-white — background
-    "cream":       "#EEE8E0",   # cream — card backgrounds
-    "teal":        "#0D6E8A",   # teal-blue — complementary accent
-    "teal_light":  "#48A9C5",   # light teal
-    "ink":         "#1A2E1F",   # near-black for text
-    "charcoal":    "#3D4F42",   # charcoal — secondary text
-    "gold":        "#C9A84C",   # warm gold — alert/highlight
+    "forest":      "#1B4332",
+    "hunter":      "#2D6A4F",
+    "fern":        "#40916C",
+    "sage":        "#74C69D",
+    "mint":        "#B7E4C7",
+    "mist":        "#D8F3DC",
+    "parchment":   "#F8F4EF",
+    "cream":       "#EEE8E0",
+    "teal":        "#0D6E8A",
+    "teal_light":  "#48A9C5",
+    "ink":         "#1A2E1F",
+    "charcoal":    "#3D4F42",
+    "gold":        "#C9A84C",
 }
 
 CHART_COLORS = [
@@ -56,6 +54,12 @@ CHART_COLORS = [
     COLORS["gold"], COLORS["mint"],
 ]
 
+AXIS_STYLE = dict(
+    gridcolor=COLORS["mint"] + "55",
+    linecolor=COLORS["mint"],
+    tickfont=dict(size=11),
+)
+
 # ---------------------------------------------------------------------------
 # Custom CSS — the apothecary aesthetic
 # ---------------------------------------------------------------------------
@@ -63,18 +67,14 @@ st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-/* ── Global ── */
 html, body, [class*="css"] {{
     font-family: 'DM Sans', sans-serif;
     background-color: {COLORS["parchment"]};
     color: {COLORS["ink"]};
 }}
-
-/* ── Hide Streamlit chrome ── */
 #MainMenu, footer, header {{ visibility: hidden; }}
 .block-container {{ padding-top: 1.5rem; padding-bottom: 2rem; }}
 
-/* ── Sidebar ── */
 [data-testid="stSidebar"] {{
     background: linear-gradient(180deg, {COLORS["forest"]} 0%, {COLORS["hunter"]} 60%, {COLORS["ink"]} 100%);
     border-right: 1px solid {COLORS["fern"]}44;
@@ -88,11 +88,8 @@ html, body, [class*="css"] {{
     letter-spacing: 0.02em;
     padding: 0.3rem 0;
 }}
-[data-testid="stSidebar"] hr {{
-    border-color: {COLORS["fern"]}55;
-}}
+[data-testid="stSidebar"] hr {{ border-color: {COLORS["fern"]}55; }}
 
-/* ── Page header ── */
 .pf-header {{
     background: linear-gradient(135deg, {COLORS["forest"]} 0%, {COLORS["hunter"]} 50%, {COLORS["fern"]}BB 100%);
     border-radius: 12px;
@@ -104,75 +101,58 @@ html, body, [class*="css"] {{
 .pf-header::before {{
     content: '';
     position: absolute;
-    top: -40%;
-    right: -10%;
-    width: 400px;
-    height: 400px;
+    top: -40%; right: -10%;
+    width: 400px; height: 400px;
     background: radial-gradient({COLORS["fern"]}33 0%, transparent 70%);
     border-radius: 50%;
 }}
 .pf-header h1 {{
     font-family: 'Cormorant Garamond', serif;
-    font-size: 2.4rem;
-    font-weight: 700;
-    color: {COLORS["mist"]};
-    margin: 0;
+    font-size: 2.4rem; font-weight: 700;
+    color: {COLORS["mist"]}; margin: 0;
     letter-spacing: 0.02em;
 }}
 .pf-header p {{
     font-family: 'DM Sans', sans-serif;
     color: {COLORS["sage"]};
     margin: 0.3rem 0 0 0;
-    font-size: 0.95rem;
-    font-weight: 300;
+    font-size: 0.95rem; font-weight: 300;
     letter-spacing: 0.05em;
 }}
 
-/* ── KPI Cards ── */
 .kpi-card {{
     background: {COLORS["cream"]};
     border: 1px solid {COLORS["mint"]}88;
     border-radius: 10px;
     padding: 1.2rem 1.4rem;
-    position: relative;
-    overflow: hidden;
+    position: relative; overflow: hidden;
 }}
 .kpi-card::after {{
     content: '';
     position: absolute;
     top: 0; left: 0;
-    width: 4px;
-    height: 100%;
+    width: 4px; height: 100%;
     background: linear-gradient({COLORS["fern"]}, {COLORS["teal"]});
     border-radius: 10px 0 0 10px;
 }}
 .kpi-label {{
-    font-size: 0.72rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: {COLORS["charcoal"]};
-    margin-bottom: 0.4rem;
+    font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: {COLORS["charcoal"]}; margin-bottom: 0.4rem;
 }}
 .kpi-value {{
     font-family: 'Cormorant Garamond', serif;
-    font-size: 2rem;
-    font-weight: 700;
-    color: {COLORS["forest"]};
-    line-height: 1;
+    font-size: 2rem; font-weight: 700;
+    color: {COLORS["forest"]}; line-height: 1;
 }}
 .kpi-delta {{
-    font-size: 0.78rem;
-    color: {COLORS["fern"]};
-    margin-top: 0.3rem;
-    font-weight: 500;
+    font-size: 0.78rem; color: {COLORS["fern"]};
+    margin-top: 0.3rem; font-weight: 500;
 }}
 
-/* ── Section headers ── */
 .section-title {{
     font-family: 'Cormorant Garamond', serif;
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-size: 1.5rem; font-weight: 600;
     color: {COLORS["forest"]};
     margin: 1.5rem 0 0.8rem 0;
     padding-bottom: 0.4rem;
@@ -180,45 +160,34 @@ html, body, [class*="css"] {{
     letter-spacing: 0.02em;
 }}
 
-/* ── Alert badges ── */
 .alert-critical {{
     background: #FFF0E8;
     border-left: 3px solid #C0392B;
-    border-radius: 4px;
-    padding: 0.5rem 0.8rem;
-    font-size: 0.85rem;
-    color: #7B241C;
+    border-radius: 4px; padding: 0.5rem 0.8rem;
+    font-size: 0.85rem; color: #7B241C;
 }}
 .alert-warning {{
     background: #FEFCE8;
     border-left: 3px solid {COLORS["gold"]};
-    border-radius: 4px;
-    padding: 0.5rem 0.8rem;
-    font-size: 0.85rem;
-    color: #7D6608;
+    border-radius: 4px; padding: 0.5rem 0.8rem;
+    font-size: 0.85rem; color: #7D6608;
 }}
 .alert-ok {{
     background: {COLORS["mist"]};
     border-left: 3px solid {COLORS["fern"]};
-    border-radius: 4px;
-    padding: 0.5rem 0.8rem;
-    font-size: 0.85rem;
-    color: {COLORS["forest"]};
+    border-radius: 4px; padding: 0.5rem 0.8rem;
+    font-size: 0.85rem; color: {COLORS["forest"]};
 }}
 
-/* ── Tab styling ── */
 .stTabs [data-baseweb="tab-list"] {{
     background: {COLORS["cream"]};
-    border-radius: 8px;
-    padding: 4px;
-    gap: 4px;
+    border-radius: 8px; padding: 4px; gap: 4px;
     border: 1px solid {COLORS["mint"]}66;
 }}
 .stTabs [data-baseweb="tab"] {{
     border-radius: 6px;
     font-family: 'DM Sans', sans-serif;
-    font-weight: 500;
-    font-size: 0.88rem;
+    font-weight: 500; font-size: 0.88rem;
     letter-spacing: 0.03em;
     color: {COLORS["charcoal"]};
     padding: 0.5rem 1.2rem;
@@ -228,20 +197,15 @@ html, body, [class*="css"] {{
     color: {COLORS["mist"]} !important;
 }}
 
-/* ── Dataframes ── */
 .stDataFrame {{
     border: 1px solid {COLORS["mint"]}66;
-    border-radius: 8px;
-    overflow: hidden;
+    border-radius: 8px; overflow: hidden;
 }}
-
-/* ── Divider ── */
 .pf-divider {{
     border: none;
     border-top: 1px solid {COLORS["mint"]}66;
     margin: 1.5rem 0;
 }}
-
 [data-testid="stRadio"] div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p {{
     font-size: 0.88rem;
 }}
@@ -254,21 +218,17 @@ div[data-baseweb="tooltip"] {{ display: none !important; }}
 # Database connection
 # ---------------------------------------------------------------------------
 def get_engine():
+    from sqlalchemy import create_engine
     database_url = os.getenv("DATABASE_URL") or os.getenv("NEON_DATABASE_URL")
     if database_url:
-        # Neon/cloud connection
         url = database_url.replace("postgresql://", "postgresql+psycopg2://")
-        from sqlalchemy import create_engine
         return create_engine(url, connect_args={"sslmode": "require"})
-    else:
-        # Local connection
-        from sqlalchemy import create_engine
-        host     = os.getenv("DB_HOST", "localhost")
-        port     = os.getenv("DB_PORT", "5433")
-        database = os.getenv("DB_NAME", "pharmaflow_warehouse")
-        user     = os.getenv("DB_USER", "pharmaflow")
-        password = os.getenv("DB_PASSWORD", "pharmaflow2024")
-        return create_engine(f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}")
+    host     = os.getenv("DB_HOST", "localhost")
+    port     = os.getenv("DB_PORT", "5433")
+    database = os.getenv("DB_NAME", "pharmaflow_warehouse")
+    user     = os.getenv("DB_USER", "pharmaflow")
+    password = os.getenv("DB_PASSWORD", "pharmaflow2024")
+    return create_engine(f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}")
 
 
 @st.cache_data(ttl=300)
@@ -293,7 +253,8 @@ def fmt_number(value) -> str:
 # ---------------------------------------------------------------------------
 # Plotly chart defaults
 # ---------------------------------------------------------------------------
-def chart_layout(fig, title: str = "", height: int = 380):
+def chart_layout(fig, title: str = "", height: int = 380, has_axes: bool = True):
+    """Apply consistent PharmaFlow styling to a Plotly figure."""
     if title:
         fig.update_layout(title_text=title)
         fig.update_layout(title_font_family="Cormorant Garamond")
@@ -305,22 +266,13 @@ def chart_layout(fig, title: str = "", height: int = 380):
         font=dict(family="DM Sans", color=COLORS["charcoal"], size=12),
         height=height,
         margin=dict(l=20, r=20, t=50 if title else 20, b=20),
-        legend=dict(
-            bgcolor="rgba(0,0,0,0)",
-            font=dict(size=11),
-        ),
-        xaxis=dict(
-            gridcolor=COLORS["mint"] + "55",
-            linecolor=COLORS["mint"],
-            tickfont=dict(size=11),
-        ),
-        yaxis=dict(
-            gridcolor=COLORS["mint"] + "55",
-            linecolor=COLORS["mint"],
-            tickfont=dict(size=11),
-        ),
+        legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(size=11)),
     )
+    if has_axes:
+        fig.update_xaxes(**AXIS_STYLE)
+        fig.update_yaxes(**AXIS_STYLE)
     return fig
+
 
 # ---------------------------------------------------------------------------
 # Sidebar
@@ -338,7 +290,7 @@ with st.sidebar:
     st.markdown("<div style='font-size:0.72rem; letter-spacing:0.1em; text-transform:uppercase; opacity:0.6; margin-bottom:0.5rem;'>Navigation</div>", unsafe_allow_html=True)
 
     page = st.radio(
-        "",
+        "Navigation",
         ["Business Insights", "Pipeline Health", "Data Quality"],
         label_visibility="collapsed",
     )
@@ -379,65 +331,58 @@ st.markdown(f"""
 # Load data
 # ---------------------------------------------------------------------------
 try:
-    kpi_df           = query("SELECT * FROM dwh.v_business_kpis LIMIT 1")
-    pharmacy_df      = query("SELECT * FROM dwh.v_revenue_by_pharmacy")
-    medications_df   = query("SELECT * FROM dwh.v_top_medications LIMIT 20")
-    growth_df        = query("SELECT * FROM dwh.v_warehouse_growth ORDER BY snapshot_date")
-    stock_alerts_df  = query("SELECT * FROM dwh.v_stock_alerts")
-    pipeline_sum_df  = query("SELECT * FROM dwh.v_pipeline_summary LIMIT 1")
+    kpi_df            = query("SELECT * FROM dwh.v_business_kpis LIMIT 1")
+    pharmacy_df       = query("SELECT * FROM dwh.v_revenue_by_pharmacy")
+    medications_df    = query("SELECT * FROM dwh.v_top_medications LIMIT 20")
+    growth_df         = query("SELECT * FROM dwh.v_warehouse_growth ORDER BY snapshot_date")
+    stock_alerts_df   = query("SELECT * FROM dwh.v_stock_alerts")
+    pipeline_sum_df   = query("SELECT * FROM dwh.v_pipeline_summary LIMIT 1")
     pipeline_daily_df = query("SELECT * FROM dwh.v_pipeline_daily ORDER BY run_date DESC LIMIT 30")
-    dq_summary_df    = query("SELECT * FROM dwh.v_data_quality_summary ORDER BY run_date DESC, dataset")
-    dq_trend_df      = query("SELECT * FROM dwh.v_quality_trend ORDER BY run_date")
-    pipeline_runs_df = query("SELECT * FROM dwh.pipeline_runs ORDER BY started_at DESC LIMIT 20")
-    
+    dq_summary_df     = query("SELECT * FROM dwh.v_data_quality_summary ORDER BY run_date DESC, dataset")
+    dq_trend_df       = query("SELECT * FROM dwh.v_quality_trend ORDER BY run_date")
+    pipeline_runs_df  = query("SELECT * FROM dwh.pipeline_runs ORDER BY started_at DESC LIMIT 20")
     db_connected = True
-
 except Exception as e:
     st.error(f"Database connection failed: {e}")
     db_connected = False
     st.stop()
+
 
 # ===========================================================================
 # TAB 1: BUSINESS INSIGHTS
 # ===========================================================================
 if "Business Insights" in page:
 
-    # KPI cards
     kpi = kpi_df.iloc[0] if not kpi_df.empty else {}
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
-        st.markdown(f"""
-        <div class="kpi-card">
+        st.markdown(f"""<div class="kpi-card">
             <div class="kpi-label">Total Revenue</div>
             <div class="kpi-value">{fmt_currency(kpi.get('total_revenue'))}</div>
             <div class="kpi-delta">↑ All time</div>
         </div>""", unsafe_allow_html=True)
     with c2:
-        st.markdown(f"""
-        <div class="kpi-card">
+        st.markdown(f"""<div class="kpi-card">
             <div class="kpi-label">Total Profit</div>
             <div class="kpi-value">{fmt_currency(kpi.get('total_profit'))}</div>
             <div class="kpi-delta">↑ Gross margin</div>
         </div>""", unsafe_allow_html=True)
     with c3:
-        st.markdown(f"""
-        <div class="kpi-card">
+        st.markdown(f"""<div class="kpi-card">
             <div class="kpi-label">Prescriptions</div>
             <div class="kpi-value">{fmt_number(kpi.get('total_prescriptions'))}</div>
             <div class="kpi-delta">↑ Total dispensed</div>
         </div>""", unsafe_allow_html=True)
     with c4:
-        st.markdown(f"""
-        <div class="kpi-card">
+        st.markdown(f"""<div class="kpi-card">
             <div class="kpi-label">Unique Patients</div>
             <div class="kpi-value">{fmt_number(kpi.get('unique_patients'))}</div>
             <div class="kpi-delta">↑ Registered</div>
         </div>""", unsafe_allow_html=True)
     with c5:
         medical_aid_pct = kpi.get('medical_aid_pct', 0)
-        st.markdown(f"""
-        <div class="kpi-card">
+        st.markdown(f"""<div class="kpi-card">
             <div class="kpi-label">Medical Aid Mix</div>
             <div class="kpi-value">{medical_aid_pct:.1f}%</div>
             <div class="kpi-delta">↑ of transactions</div>
@@ -445,7 +390,6 @@ if "Business Insights" in page:
 
     st.markdown("<hr class='pf-divider'/>", unsafe_allow_html=True)
 
-    # Row 1: Revenue by pharmacy + Revenue trend
     col1, col2 = st.columns([1, 1.4])
 
     with col1:
@@ -465,7 +409,7 @@ if "Business Insights" in page:
                 textfont=dict(size=11, color=COLORS["charcoal"]),
                 hovertemplate="<b>%{y}</b><br>Revenue: R %{x:,.0f}<extra></extra>",
             ))
-            chart_layout(fig, height=320)
+            chart_layout(fig, height=320, has_axes=True)
             fig.update_layout(yaxis=dict(categoryorder='total ascending'))
             st.plotly_chart(fig, use_container_width=True)
 
@@ -490,7 +434,7 @@ if "Business Insights" in page:
                 yaxis='y2',
                 hovertemplate="<b>%{x}</b><br>Daily: R %{y:,.0f}<extra></extra>",
             ))
-            chart_layout(fig, height=320)
+            chart_layout(fig, height=320, has_axes=True)
             fig.update_layout(
                 yaxis2=dict(overlaying='y', side='right', showgrid=False,
                             tickfont=dict(size=10), tickformat=',.0f'),
@@ -501,7 +445,6 @@ if "Business Insights" in page:
 
     st.markdown("<hr class='pf-divider'/>", unsafe_allow_html=True)
 
-    # Row 2: Top medications + Payment mix
     col1, col2 = st.columns([1.6, 1])
 
     with col1:
@@ -523,7 +466,7 @@ if "Business Insights" in page:
                 customdata=top15[['therapeutic_class', 'total_revenue']].values,
                 hovertemplate="<b>%{y}</b><br>Prescriptions: %{x}<br>Class: %{customdata[0]}<br>Revenue: R %{customdata[1]:,.0f}<extra></extra>",
             ))
-            chart_layout(fig, height=440)
+            chart_layout(fig, height=440, has_axes=True)
             st.plotly_chart(fig, use_container_width=True)
 
     with col2:
@@ -539,12 +482,13 @@ if "Business Insights" in page:
                 textfont=dict(size=12, family="DM Sans"),
                 hovertemplate="<b>%{label}</b><br>%{value:,} transactions<br>%{percent}<extra></extra>",
             ))
-            chart_layout(fig, height=260)
+            chart_layout(fig, height=260, has_axes=False)
             fig.update_layout(
                 showlegend=False,
                 annotations=[dict(
                     text=f"{fmt_number(kpi.get('total_prescriptions'))}<br><span style='font-size:10px'>total</span>",
-                    x=0.5, y=0.5, font=dict(size=18, family="Cormorant Garamond", color=COLORS["forest"]),
+                    x=0.5, y=0.5,
+                    font=dict(size=18, family="Cormorant Garamond", color=COLORS["forest"]),
                     showarrow=False,
                 )]
             )
@@ -564,13 +508,12 @@ if "Business Insights" in page:
                 textposition='outside',
                 hovertemplate="<b>%{x}</b><br>Margin: %{y:.1f}%<extra></extra>",
             ))
-            chart_layout(fig, height=200)
-            fig.update_layout(xaxis=dict(tickangle=-20, tickfont=dict(size=9)))
+            chart_layout(fig, height=200, has_axes=True)
+            fig.update_xaxes(tickangle=-20, tickfont=dict(size=9))
             st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("<hr class='pf-divider'/>", unsafe_allow_html=True)
 
-    # Row 3: Stock alerts
     st.markdown("<div class='section-title'>Stock Alerts</div>", unsafe_allow_html=True)
     if stock_alerts_df.empty:
         st.markdown("<div class='alert-ok'>✓ All stock levels are within normal thresholds.</div>", unsafe_allow_html=True)
@@ -579,14 +522,14 @@ if "Business Insights" in page:
         with c1:
             counts = stock_alerts_df['stock_status_code'].value_counts()
             for status, count in counts.items():
-                cls = "alert-critical" if status == "OUT" else "alert-warning"
+                cls   = "alert-critical" if status == "OUT" else "alert-warning"
                 label = "OUT OF STOCK" if status == "OUT" else "LOW STOCK" if status == "LOW" else "NEAR EXPIRY"
                 st.markdown(f"<div class='{cls}' style='margin-bottom:0.5rem;'><b>{label}</b> — {count} item(s)</div>", unsafe_allow_html=True)
         with c2:
             st.dataframe(
                 stock_alerts_df[['location_name', 'medication_name', 'stock_status_code', 'quantity_on_hand', 'reorder_point']].rename(columns={
                     'location_name': 'Pharmacy', 'medication_name': 'Medication',
-                    'stock_status_code': 'Status', 'quantity_on_hand': 'On Hand', 'reorder_point': 'Reorder Point'
+                    'stock_status_code': 'Status', 'quantity_on_hand': 'On Hand', 'reorder_point': 'Reorder Point',
                 }),
                 use_container_width=True, hide_index=True,
             )
@@ -597,27 +540,23 @@ if "Business Insights" in page:
 # ===========================================================================
 elif "Pipeline Health" in page:
 
-    # KPI cards
     ps = pipeline_sum_df.iloc[0] if not pipeline_sum_df.empty else {}
     c1, c2, c3, c4 = st.columns(4)
     with c1:
-        st.markdown(f"""
-        <div class="kpi-card">
+        st.markdown(f"""<div class="kpi-card">
             <div class="kpi-label">Total Runs</div>
             <div class="kpi-value">{fmt_number(ps.get('total_runs'))}</div>
             <div class="kpi-delta">Pipeline executions</div>
         </div>""", unsafe_allow_html=True)
     with c2:
         rate = ps.get('success_rate_pct', 0)
-        st.markdown(f"""
-        <div class="kpi-card">
+        st.markdown(f"""<div class="kpi-card">
             <div class="kpi-label">Success Rate</div>
             <div class="kpi-value">{rate:.1f}%</div>
             <div class="kpi-delta">↑ Reliability</div>
         </div>""", unsafe_allow_html=True)
     with c3:
-        st.markdown(f"""
-        <div class="kpi-card">
+        st.markdown(f"""<div class="kpi-card">
             <div class="kpi-label">Rows Loaded</div>
             <div class="kpi-value">{fmt_number(ps.get('total_rows_loaded'))}</div>
             <div class="kpi-delta">↑ Total records</div>
@@ -625,8 +564,7 @@ elif "Pipeline Health" in page:
     with c4:
         avg_dur = ps.get('avg_duration_seconds')
         dur_str = f"{avg_dur:.0f}s" if avg_dur else "—"
-        st.markdown(f"""
-        <div class="kpi-card">
+        st.markdown(f"""<div class="kpi-card">
             <div class="kpi-label">Avg Duration</div>
             <div class="kpi-value">{dur_str}</div>
             <div class="kpi-delta">Per run</div>
@@ -654,7 +592,7 @@ elif "Pipeline Health" in page:
                 marker_color=COLORS["sage"],
                 hovertemplate="<b>%{x}</b><br>Skipped: %{y:,}<extra></extra>",
             ))
-            chart_layout(fig, height=320)
+            chart_layout(fig, height=320, has_axes=True)
             fig.update_layout(barmode='stack', legend=dict(orientation='h', y=1.1))
             st.plotly_chart(fig, use_container_width=True)
 
@@ -662,28 +600,25 @@ elif "Pipeline Health" in page:
         st.markdown("<div class='section-title'>Run Status Distribution</div>", unsafe_allow_html=True)
         if not pipeline_sum_df.empty:
             ps = pipeline_sum_df.iloc[0]
-            statuses = ['Success', 'Failed', 'Partial']
-            values = [
-                ps.get('successful_runs', 0),
-                ps.get('failed_runs', 0),
-                ps.get('partial_runs', 0),
-            ]
             fig = go.Figure(go.Pie(
-                labels=statuses,
-                values=values,
+                labels=['Success', 'Failed', 'Partial'],
+                values=[
+                    ps.get('successful_runs', 0),
+                    ps.get('failed_runs', 0),
+                    ps.get('partial_runs', 0),
+                ],
                 hole=0.55,
                 marker=dict(colors=[COLORS["fern"], "#C0392B", COLORS["gold"]]),
                 textinfo='label+percent',
                 textfont=dict(size=12),
                 hovertemplate="<b>%{label}</b><br>%{value} runs (%{percent})<extra></extra>",
             ))
-            chart_layout(fig, height=320)
+            chart_layout(fig, height=320, has_axes=False)
             fig.update_layout(showlegend=False)
             st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("<hr class='pf-divider'/>", unsafe_allow_html=True)
 
-    # Warehouse growth
     st.markdown("<div class='section-title'>Cumulative Records Loaded into Warehouse</div>", unsafe_allow_html=True)
     if not growth_df.empty:
         fig = go.Figure()
@@ -696,13 +631,12 @@ elif "Pipeline Health" in page:
             name='Cumulative Prescriptions',
             hovertemplate="<b>%{x}</b><br>Total: %{y:,}<extra></extra>",
         ))
-        chart_layout(fig, height=280)
+        chart_layout(fig, height=280, has_axes=True)
         fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("<hr class='pf-divider'/>", unsafe_allow_html=True)
 
-    # Run log table
     st.markdown("<div class='section-title'>Recent Pipeline Runs</div>", unsafe_allow_html=True)
     if not pipeline_runs_df.empty:
         display_df = pipeline_runs_df[[
@@ -724,7 +658,6 @@ elif "Pipeline Health" in page:
 # ===========================================================================
 elif "Data Quality" in page:
 
-    # Summary KPI cards
     if not dq_summary_df.empty:
         total_checked = dq_summary_df['total_rows_checked'].sum()
         total_failed  = dq_summary_df['total_rows_failed'].sum()
@@ -735,29 +668,25 @@ elif "Data Quality" in page:
 
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            st.markdown(f"""
-            <div class="kpi-card">
+            st.markdown(f"""<div class="kpi-card">
                 <div class="kpi-label">Rows Checked</div>
                 <div class="kpi-value">{fmt_number(total_checked)}</div>
                 <div class="kpi-delta">Across all datasets</div>
             </div>""", unsafe_allow_html=True)
         with c2:
-            st.markdown(f"""
-            <div class="kpi-card">
+            st.markdown(f"""<div class="kpi-card">
                 <div class="kpi-label">Pass Rate</div>
                 <div class="kpi-value">{pass_rate}%</div>
                 <div class="kpi-delta">After ETL cleaning</div>
             </div>""", unsafe_allow_html=True)
         with c3:
-            st.markdown(f"""
-            <div class="kpi-card">
+            st.markdown(f"""<div class="kpi-card">
                 <div class="kpi-label">Warnings</div>
                 <div class="kpi-value">{fmt_number(warnings)}</div>
                 <div class="kpi-delta">Issues detected & fixed</div>
             </div>""", unsafe_allow_html=True)
         with c4:
-            st.markdown(f"""
-            <div class="kpi-card">
+            st.markdown(f"""<div class="kpi-card">
                 <div class="kpi-label">Critical Issues</div>
                 <div class="kpi-value">{fmt_number(critical)}</div>
                 <div class="kpi-delta">Requiring attention</div>
@@ -781,7 +710,7 @@ elif "Data Quality" in page:
                     marker_color=CHART_COLORS[i % len(CHART_COLORS)],
                     hovertemplate=f"<b>{dataset}</b><br>Failed: %{{y}}<extra></extra>",
                 ))
-            chart_layout(fig, height=320)
+            chart_layout(fig, height=320, has_axes=True)
             fig.update_layout(barmode='group', legend=dict(orientation='h', y=1.1))
             st.plotly_chart(fig, use_container_width=True)
 
@@ -802,24 +731,21 @@ elif "Data Quality" in page:
                 textposition='outside',
                 hovertemplate="<b>%{x}</b><br>Failure rate: %{y:.2f}%<extra></extra>",
             ))
-            chart_layout(fig, height=320)
-            fig.update_layout(yaxis=dict(title="Failure Rate (%)"))
+            chart_layout(fig, height=320, has_axes=True)
+            fig.update_yaxes(title_text="Failure Rate (%)")
             st.plotly_chart(fig, use_container_width=True)
 
     st.markdown("<hr class='pf-divider'/>", unsafe_allow_html=True)
 
-    # Quality issue detail log
     st.markdown("<div class='section-title'>Quality Issue Log</div>", unsafe_allow_html=True)
     dq_log_df = query("""
-        SELECT
-            run_date, dataset, check_name, check_category,
-            rows_checked, rows_failed, failure_rate_pct, severity, details
+        SELECT run_date, dataset, check_name, check_category,
+               rows_checked, rows_failed, failure_rate_pct, severity, details
         FROM dwh.data_quality_log
         ORDER BY run_date DESC, severity DESC, dataset
     """)
 
     if not dq_log_df.empty:
-        # Colour-code severity
         def severity_badge(sev):
             if sev == 'CRITICAL':
                 return f"🔴 {sev}"
@@ -841,7 +767,6 @@ elif "Data Quality" in page:
 
     st.markdown("<hr class='pf-divider'/>", unsafe_allow_html=True)
 
-    # ETL fix summary — what the pipeline corrected
     st.markdown("<div class='section-title'>What the ETL Pipeline Fixed</div>", unsafe_allow_html=True)
     fixes = [
         ("Prescription duplicates",    "5% of records had duplicate prescription numbers — removed during deduplication"),
