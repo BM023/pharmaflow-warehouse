@@ -11,6 +11,7 @@ Run: streamlit run dashboard/app.py
 """
 
 import os
+from sqlalchemy import create_engine
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -219,6 +220,8 @@ div[data-baseweb="tooltip"] {{ display: none !important; }}
 # ---------------------------------------------------------------------------
 def get_engine():
     database_url = os.getenv("DATABASE_URL")
+    if not database_url:
+        raise ValueError("DATABASE_URL is not set")
     return create_engine(database_url)
 
 
