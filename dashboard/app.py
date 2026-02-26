@@ -218,17 +218,8 @@ div[data-baseweb="tooltip"] {{ display: none !important; }}
 # Database connection
 # ---------------------------------------------------------------------------
 def get_engine():
-    from sqlalchemy import create_engine
-    database_url = os.getenv("DATABASE_URL") or os.getenv("NEON_DATABASE_URL")
-    if database_url:
-        url = database_url.replace("postgresql://", "postgresql+psycopg2://")
-        return create_engine(url, connect_args={"sslmode": "require"})
-    host     = os.getenv("DB_HOST", "localhost")
-    port     = os.getenv("DB_PORT", "5433")
-    database = os.getenv("DB_NAME", "pharmaflow_warehouse")
-    user     = os.getenv("DB_USER", "pharmaflow")
-    password = os.getenv("DB_PASSWORD", "pharmaflow2024")
-    return create_engine(f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}")
+    database_url = os.getenv("DATABASE_URL")
+    return create_engine(database_url)
 
 
 @st.cache_data(ttl=300)
@@ -344,7 +335,7 @@ try:
     db_connected = True
 except Exception as e:
     st.error(f"Database connection failed: {e}")
-    db_connected = False
+    st.write("Debug info:", str(e))
     st.stop()
 
 
