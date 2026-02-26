@@ -55,7 +55,7 @@ CHART_COLORS = [
 ]
 
 AXIS_STYLE = dict(
-    gridcolor=COLORS["mint"] + "55",
+    gridcolor="rgba(183, 228, 199, 0.33)",
     linecolor=COLORS["mint"],
     tickfont=dict(size=11),
 )
@@ -412,7 +412,7 @@ if "Business Insights" in page:
                 x=growth_df['snapshot_date'],
                 y=growth_df['cumulative_revenue'],
                 fill='tozeroy',
-                fillcolor=COLORS["fern"] + "22",
+                fillcolor="rgba(64, 145, 108, 0.13)",
                 line=dict(color=COLORS["fern"], width=2.5),
                 name='Cumulative Revenue',
                 hovertemplate="<b>%{x}</b><br>R %{y:,.0f}<extra></extra>",
@@ -421,7 +421,7 @@ if "Business Insights" in page:
                 x=growth_df['snapshot_date'],
                 y=growth_df['daily_revenue'],
                 name='Daily Revenue',
-                marker_color=COLORS["teal"] + "66",
+                marker_color="rgba(13, 110, 138, 0.40)",
                 yaxis='y2',
                 hovertemplate="<b>%{x}</b><br>Daily: R %{y:,.0f}<extra></extra>",
             ))
