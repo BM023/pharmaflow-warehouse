@@ -16,7 +16,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import psycopg2
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
@@ -254,23 +253,29 @@ div[data-baseweb="tooltip"] {{ display: none !important; }}
 # ---------------------------------------------------------------------------
 # Database connection
 # ---------------------------------------------------------------------------
-@st.cache_resource
-def get_connection():
+def get_engine():
     database_url = os.getenv("DATABASE_URL") or os.getenv("NEON_DATABASE_URL")
     if database_url:
-        return psycopg2.connect(database_url, sslmode='require')
-    return psycopg2.connect(
-        host=os.getenv("DB_HOST", "localhost"),
-        port=os.getenv("DB_PORT", "5433"),
-        database=os.getenv("DB_NAME", "pharmaflow_warehouse"),
-        user=os.getenv("DB_USER", "pharmaflow"),
-        password=os.getenv("DB_PASSWORD", "pharmaflow2024"),
-    )
+        # Neon/cloud connection
+        url = database_url.replace("postgresql://", "postgresql+psycopg2://")
+        from sqlalchemy import create_engine
+        return create_engine(url, connect_args={"sslmode": "require"})
+    else:
+        # Local connection
+        from sqlalchemy import create_engine
+        host     = os.getenv("DB_HOST", "localhost")
+        port     = os.getenv("DB_PORT", "5433")
+        database = os.getenv("DB_NAME", "pharmaflow_warehouse")
+        user     = os.getenv("DB_USER", "pharmaflow")
+        password = os.getenv("DB_PASSWORD", "pharmaflow2024")
+        return create_engine(f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}")
 
 
 @st.cache_data(ttl=300)
-def query(_conn, sql: str) -> pd.DataFrame:
-    return pd.read_sql(sql, _conn)
+def query(sql: str) -> pd.DataFrame:
+    engine = get_engine()
+    with engine.connect() as conn:
+        return pd.read_sql(sql, conn)
 
 
 def fmt_currency(value) -> str:
@@ -289,8 +294,12 @@ def fmt_number(value) -> str:
 # Plotly chart defaults
 # ---------------------------------------------------------------------------
 def chart_layout(fig, title: str = "", height: int = 380):
+    if title:
+        fig.update_layout(title_text=title)
+        fig.update_layout(title_font_family="Cormorant Garamond")
+        fig.update_layout(title_font_size=18)
+        fig.update_layout(title_font_color=COLORS["forest"])
     fig.update_layout(
-        title=dict(text=title, font=dict(family="Cormorant Garamond", size=18, color=COLORS["forest"])),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="DM Sans", color=COLORS["charcoal"], size=12),
@@ -312,7 +321,6 @@ def chart_layout(fig, title: str = "", height: int = 380):
         ),
     )
     return fig
-
 
 # ---------------------------------------------------------------------------
 # Sidebar
@@ -338,8 +346,7 @@ with st.sidebar:
     st.markdown("<hr/>", unsafe_allow_html=True)
 
     try:
-        conn = get_connection()
-        kpi = query(conn, "SELECT * FROM dwh.v_business_kpis LIMIT 1")
+        kpi = query("SELECT * FROM dwh.v_business_kpis LIMIT 1")
         if not kpi.empty:
             data_from = pd.to_datetime(kpi['data_from'].iloc[0]).strftime('%d %b %Y')
             data_to   = pd.to_datetime(kpi['data_to'].iloc[0]).strftime('%d %b %Y')
@@ -372,26 +379,23 @@ st.markdown(f"""
 # Load data
 # ---------------------------------------------------------------------------
 try:
-    conn = get_connection()
-
-    kpi_df           = query(conn, "SELECT * FROM dwh.v_business_kpis LIMIT 1")
-    pharmacy_df      = query(conn, "SELECT * FROM dwh.v_revenue_by_pharmacy")
-    medications_df   = query(conn, "SELECT * FROM dwh.v_top_medications LIMIT 20")
-    growth_df        = query(conn, "SELECT * FROM dwh.v_warehouse_growth ORDER BY snapshot_date")
-    stock_alerts_df  = query(conn, "SELECT * FROM dwh.v_stock_alerts")
-    pipeline_sum_df  = query(conn, "SELECT * FROM dwh.v_pipeline_summary LIMIT 1")
-    pipeline_daily_df = query(conn, "SELECT * FROM dwh.v_pipeline_daily ORDER BY run_date DESC LIMIT 30")
-    dq_summary_df    = query(conn, "SELECT * FROM dwh.v_data_quality_summary ORDER BY run_date DESC, dataset")
-    dq_trend_df      = query(conn, "SELECT * FROM dwh.v_quality_trend ORDER BY run_date")
-    pipeline_runs_df = query(conn, "SELECT * FROM dwh.pipeline_runs ORDER BY started_at DESC LIMIT 20")
-
+    kpi_df           = query("SELECT * FROM dwh.v_business_kpis LIMIT 1")
+    pharmacy_df      = query("SELECT * FROM dwh.v_revenue_by_pharmacy")
+    medications_df   = query("SELECT * FROM dwh.v_top_medications LIMIT 20")
+    growth_df        = query("SELECT * FROM dwh.v_warehouse_growth ORDER BY snapshot_date")
+    stock_alerts_df  = query("SELECT * FROM dwh.v_stock_alerts")
+    pipeline_sum_df  = query("SELECT * FROM dwh.v_pipeline_summary LIMIT 1")
+    pipeline_daily_df = query("SELECT * FROM dwh.v_pipeline_daily ORDER BY run_date DESC LIMIT 30")
+    dq_summary_df    = query("SELECT * FROM dwh.v_data_quality_summary ORDER BY run_date DESC, dataset")
+    dq_trend_df      = query("SELECT * FROM dwh.v_quality_trend ORDER BY run_date")
+    pipeline_runs_df = query("SELECT * FROM dwh.pipeline_runs ORDER BY started_at DESC LIMIT 20")
+    
     db_connected = True
 
 except Exception as e:
     st.error(f"Database connection failed: {e}")
     db_connected = False
     st.stop()
-
 
 # ===========================================================================
 # TAB 1: BUSINESS INSIGHTS
@@ -806,7 +810,7 @@ elif "Data Quality" in page:
 
     # Quality issue detail log
     st.markdown("<div class='section-title'>Quality Issue Log</div>", unsafe_allow_html=True)
-    dq_log_df = query(conn, """
+    dq_log_df = query("""
         SELECT
             run_date, dataset, check_name, check_category,
             rows_checked, rows_failed, failure_rate_pct, severity, details
