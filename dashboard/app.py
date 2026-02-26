@@ -30,6 +30,25 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+st.markdown("""
+<style>
+
+[data-testid="stSidebar"] {
+    min-width: 280px;
+    max-width: 280px;
+}
+
+button[data-testid="collapsedControl"] {
+    display: none;
+}
+
+section[data-testid="stSidebar"] > div {
+    width: 280px !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 # ---------------------------------------------------------------------------
 # Palette & Theme
 # ---------------------------------------------------------------------------
@@ -222,7 +241,7 @@ def get_engine():
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
         raise ValueError("DATABASE_URL is not set")
-    return create_engine(database_url)
+    return create_engine(database_url, pool_pre_ping=True)
 
 
 @st.cache_data(ttl=300)
@@ -233,13 +252,13 @@ def query(sql: str) -> pd.DataFrame:
 
 
 def fmt_currency(value) -> str:
-    if value is None:
+    if pd.isna(value):
         return "R 0"
     return f"R {value:,.0f}"
 
 
 def fmt_number(value) -> str:
-    if value is None:
+    if pd.isna(value):
         return "0"
     return f"{value:,.0f}"
 
@@ -330,12 +349,22 @@ try:
     medications_df    = query("SELECT * FROM dwh.v_top_medications LIMIT 20")
     growth_df         = query("SELECT * FROM dwh.v_warehouse_growth ORDER BY snapshot_date")
     stock_alerts_df   = query("SELECT * FROM dwh.v_stock_alerts")
+    
     pipeline_sum_df   = query("SELECT * FROM dwh.v_pipeline_summary LIMIT 1")
     pipeline_daily_df = query("SELECT * FROM dwh.v_pipeline_daily ORDER BY run_date DESC LIMIT 30")
+    pipeline_runs_df  = query("SELECT * FROM dwh.pipeline_runs ORDER BY started_at DESC LIMIT 20")
+    
     dq_summary_df     = query("SELECT * FROM dwh.v_data_quality_summary ORDER BY run_date DESC, dataset")
     dq_trend_df       = query("SELECT * FROM dwh.v_quality_trend ORDER BY run_date")
-    pipeline_runs_df  = query("SELECT * FROM dwh.pipeline_runs ORDER BY started_at DESC LIMIT 20")
+    dq_log_df         = query("""
+                            SELECT run_date, dataset, check_name, check_category,
+                                rows_checked, rows_failed, failure_rate_pct,
+                                severity, details
+                            FROM dwh.data_quality_log
+                            ORDER BY run_date DESC, severity DESC, dataset
+                        """)
     db_connected = True
+
 except Exception as e:
     st.error(f"Database connection failed: {e}")
     st.write("Debug info:", str(e))
@@ -409,8 +438,28 @@ if "Business Insights" in page:
 
     with col2:
         st.markdown("<div class='section-title'>Cumulative Revenue Trend</div>", unsafe_allow_html=True)
+
         if not growth_df.empty:
+
+            # ---- DATA CLEANING (BEFORE FIGURE) ----
+            growth_df = growth_df.copy()
+            growth_df['snapshot_date'] = pd.to_datetime(
+                growth_df['snapshot_date'], errors='coerce'
+            )
+            growth_df['cumulative_revenue'] = pd.to_numeric(
+                growth_df['cumulative_revenue'], errors='coerce'
+            )
+            growth_df['daily_revenue'] = pd.to_numeric(
+                growth_df['daily_revenue'], errors='coerce'
+            )
+
+            growth_df = growth_df.dropna(
+                subset=['snapshot_date', 'cumulative_revenue']
+            )
+
+            # ---- CREATE FIGURE ----
             fig = go.Figure()
+
             fig.add_trace(go.Scatter(
                 x=growth_df['snapshot_date'],
                 y=growth_df['cumulative_revenue'],
@@ -420,6 +469,15 @@ if "Business Insights" in page:
                 name='Cumulative Revenue',
                 hovertemplate="<b>%{x}</b><br>R %{y:,.0f}<extra></extra>",
             ))
+
+            chart_layout(fig, height=300, has_axes=True)
+            fig.update_layout(showlegend=False)
+
+            st.plotly_chart(fig, use_container_width=True)
+
+        else:
+            st.info("No revenue growth data available.")
+
             fig.add_trace(go.Bar(
                 x=growth_df['snapshot_date'],
                 y=growth_df['daily_revenue'],
@@ -534,30 +592,46 @@ if "Business Insights" in page:
 # ===========================================================================
 elif "Pipeline Health" in page:
 
+    # -----------------------------------------------------------------------
+    # SAFETY: Ensure DataFrames exist
+    # -----------------------------------------------------------------------
+    pipeline_sum_df = pipeline_sum_df if 'pipeline_sum_df' in locals() else pd.DataFrame()
+    pipeline_daily_df = pipeline_daily_df if 'pipeline_daily_df' in locals() else pd.DataFrame()
+    growth_df = growth_df if 'growth_df' in locals() else pd.DataFrame()
+    pipeline_runs_df = pipeline_runs_df if 'pipeline_runs_df' in locals() else pd.DataFrame()
+
+    # -----------------------------------------------------------------------
+    # KPI SECTION
+    # -----------------------------------------------------------------------
     ps = pipeline_sum_df.iloc[0] if not pipeline_sum_df.empty else {}
+
     c1, c2, c3, c4 = st.columns(4)
+
     with c1:
         st.markdown(f"""<div class="kpi-card">
             <div class="kpi-label">Total Runs</div>
             <div class="kpi-value">{fmt_number(ps.get('total_runs'))}</div>
             <div class="kpi-delta">Pipeline executions</div>
         </div>""", unsafe_allow_html=True)
+
     with c2:
-        rate = ps.get('success_rate_pct', 0)
+        rate = float(ps.get('success_rate_pct') or 0)
         st.markdown(f"""<div class="kpi-card">
             <div class="kpi-label">Success Rate</div>
             <div class="kpi-value">{rate:.1f}%</div>
             <div class="kpi-delta">↑ Reliability</div>
         </div>""", unsafe_allow_html=True)
+
     with c3:
         st.markdown(f"""<div class="kpi-card">
             <div class="kpi-label">Rows Loaded</div>
             <div class="kpi-value">{fmt_number(ps.get('total_rows_loaded'))}</div>
             <div class="kpi-delta">↑ Total records</div>
         </div>""", unsafe_allow_html=True)
+
     with c4:
         avg_dur = ps.get('avg_duration_seconds')
-        dur_str = f"{avg_dur:.0f}s" if avg_dur else "—"
+        dur_str = f"{float(avg_dur):.0f}s" if avg_dur else "—"
         st.markdown(f"""<div class="kpi-card">
             <div class="kpi-label">Avg Duration</div>
             <div class="kpi-value">{dur_str}</div>
@@ -566,12 +640,34 @@ elif "Pipeline Health" in page:
 
     st.markdown("<hr class='pf-divider'/>", unsafe_allow_html=True)
 
+    # -----------------------------------------------------------------------
+    # DAILY ROWS LOADED (BAR CHART)
+    # -----------------------------------------------------------------------
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown("<div class='section-title'>Daily Rows Loaded</div>", unsafe_allow_html=True)
+
         if not pipeline_daily_df.empty:
+
+            # ---- Data Type Cleaning ----
+            pipeline_daily_df = pipeline_daily_df.copy()
+            pipeline_daily_df['run_date'] = pd.to_datetime(
+                pipeline_daily_df['run_date'], errors='coerce'
+            )
+            pipeline_daily_df['rows_loaded'] = pd.to_numeric(
+                pipeline_daily_df['rows_loaded'], errors='coerce'
+            )
+            pipeline_daily_df['rows_skipped'] = pd.to_numeric(
+                pipeline_daily_df['rows_skipped'], errors='coerce'
+            )
+
+            pipeline_daily_df = pipeline_daily_df.dropna(
+                subset=['run_date', 'rows_loaded', 'rows_skipped']
+            )
+
             fig = go.Figure()
+
             fig.add_trace(go.Bar(
                 x=pipeline_daily_df['run_date'],
                 y=pipeline_daily_df['rows_loaded'],
@@ -579,6 +675,7 @@ elif "Pipeline Health" in page:
                 marker_color=COLORS["fern"],
                 hovertemplate="<b>%{x}</b><br>Loaded: %{y:,}<extra></extra>",
             ))
+
             fig.add_trace(go.Bar(
                 x=pipeline_daily_df['run_date'],
                 y=pipeline_daily_df['rows_skipped'],
@@ -586,20 +683,28 @@ elif "Pipeline Health" in page:
                 marker_color=COLORS["sage"],
                 hovertemplate="<b>%{x}</b><br>Skipped: %{y:,}<extra></extra>",
             ))
+
             chart_layout(fig, height=320, has_axes=True)
             fig.update_layout(barmode='stack', legend=dict(orientation='h', y=1.1))
             st.plotly_chart(fig, use_container_width=True)
 
+        else:
+            st.info("No daily pipeline data available.")
+
+    # -----------------------------------------------------------------------
+    # RUN STATUS DISTRIBUTION (PIE)
+    # -----------------------------------------------------------------------
     with col2:
         st.markdown("<div class='section-title'>Run Status Distribution</div>", unsafe_allow_html=True)
+
         if not pipeline_sum_df.empty:
-            ps = pipeline_sum_df.iloc[0]
+
             fig = go.Figure(go.Pie(
                 labels=['Success', 'Failed', 'Partial'],
                 values=[
-                    ps.get('successful_runs', 0),
-                    ps.get('failed_runs', 0),
-                    ps.get('partial_runs', 0),
+                    int(ps.get('successful_runs') or 0),
+                    int(ps.get('failed_runs') or 0),
+                    int(ps.get('partial_runs') or 0),
                 ],
                 hole=0.55,
                 marker=dict(colors=[COLORS["fern"], "#C0392B", COLORS["gold"]]),
@@ -607,45 +712,88 @@ elif "Pipeline Health" in page:
                 textfont=dict(size=12),
                 hovertemplate="<b>%{label}</b><br>%{value} runs (%{percent})<extra></extra>",
             ))
+
             chart_layout(fig, height=320, has_axes=False)
             fig.update_layout(showlegend=False)
             st.plotly_chart(fig, use_container_width=True)
 
+        else:
+            st.info("No pipeline summary data available.")
+
     st.markdown("<hr class='pf-divider'/>", unsafe_allow_html=True)
 
+    # -----------------------------------------------------------------------
+    # CUMULATIVE GROWTH (THIS WAS CRASHING)
+    # -----------------------------------------------------------------------
     st.markdown("<div class='section-title'>Cumulative Records Loaded into Warehouse</div>", unsafe_allow_html=True)
+
     if not growth_df.empty:
+
+        growth_df = growth_df.copy()
+
+        # ---- CRITICAL FIX: Data Type Safety ----
+        growth_df['snapshot_date'] = pd.to_datetime(
+            growth_df['snapshot_date'], errors='coerce'
+        )
+        growth_df['cumulative_prescriptions'] = pd.to_numeric(
+            growth_df['cumulative_prescriptions'], errors='coerce'
+        )
+
+        growth_df = growth_df.dropna(
+            subset=['snapshot_date', 'cumulative_prescriptions']
+        )
+
         fig = go.Figure()
+
         fig.add_trace(go.Scatter(
             x=growth_df['snapshot_date'],
             y=growth_df['cumulative_prescriptions'],
             fill='tozeroy',
-            fillcolor=COLORS["forest"] + "22",
+            fillcolor="rgba(27, 67, 50, 0.15)",  # SAFE RGBA (forest)
             line=dict(color=COLORS["forest"], width=2.5),
             name='Cumulative Prescriptions',
             hovertemplate="<b>%{x}</b><br>Total: %{y:,}<extra></extra>",
         ))
+
         chart_layout(fig, height=280, has_axes=True)
         fig.update_layout(showlegend=False)
         st.plotly_chart(fig, use_container_width=True)
 
+    else:
+        st.info("No cumulative growth data available.")
+
     st.markdown("<hr class='pf-divider'/>", unsafe_allow_html=True)
 
+    # -----------------------------------------------------------------------
+    # RECENT PIPELINE RUNS TABLE
+    # -----------------------------------------------------------------------
     st.markdown("<div class='section-title'>Recent Pipeline Runs</div>", unsafe_allow_html=True)
+
     if not pipeline_runs_df.empty:
+
         display_df = pipeline_runs_df[[
             'run_id', 'run_date', 'stage', 'rows_loaded',
-            'rows_skipped', 'rows_failed', 'status', 'duration_seconds', 'started_at'
+            'rows_skipped', 'rows_failed', 'status',
+            'duration_seconds', 'started_at'
         ]].rename(columns={
-            'run_id': 'ID', 'run_date': 'Date', 'stage': 'Stage',
-            'rows_loaded': 'Loaded', 'rows_skipped': 'Skipped',
-            'rows_failed': 'Failed', 'status': 'Status',
-            'duration_seconds': 'Duration (s)', 'started_at': 'Started At',
+            'run_id': 'ID',
+            'run_date': 'Date',
+            'stage': 'Stage',
+            'rows_loaded': 'Loaded',
+            'rows_skipped': 'Skipped',
+            'rows_failed': 'Failed',
+            'status': 'Status',
+            'duration_seconds': 'Duration (s)',
+            'started_at': 'Started At',
         })
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
-    else:
-        st.markdown("<div class='alert-warning'>No pipeline runs recorded yet. Run the ETL pipeline to populate this table.</div>", unsafe_allow_html=True)
 
+        st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+    else:
+        st.markdown(
+            "<div class='alert-warning'>No pipeline runs recorded yet. Run the ETL pipeline to populate this table.</div>",
+            unsafe_allow_html=True
+        )
 
 # ===========================================================================
 # TAB 3: DATA QUALITY
@@ -711,7 +859,13 @@ elif "Data Quality" in page:
     with col2:
         st.markdown("<div class='section-title'>Failure Rate by Dataset</div>", unsafe_allow_html=True)
         if not dq_summary_df.empty:
-            latest = dq_summary_df.groupby('dataset').first().reset_index()
+            latest = (
+                dq_summary_df
+                .sort_values("run_date", ascending=False)
+                .groupby('dataset')
+                .first()
+                .reset_index()
+            )
             fig = go.Figure(go.Bar(
                 x=latest['dataset'],
                 y=latest['overall_failure_rate_pct'],
@@ -732,12 +886,8 @@ elif "Data Quality" in page:
     st.markdown("<hr class='pf-divider'/>", unsafe_allow_html=True)
 
     st.markdown("<div class='section-title'>Quality Issue Log</div>", unsafe_allow_html=True)
-    dq_log_df = query("""
-        SELECT run_date, dataset, check_name, check_category,
-               rows_checked, rows_failed, failure_rate_pct, severity, details
-        FROM dwh.data_quality_log
-        ORDER BY run_date DESC, severity DESC, dataset
-    """)
+    if not dq_log_df.empty:
+        st.dataframe(dq_log_df, use_container_width=True, hide_index=True)
 
     if not dq_log_df.empty:
         def severity_badge(sev):
@@ -780,3 +930,15 @@ elif "Data Quality" in page:
                 <b>✓ {issue}</b><br>
                 <span style="font-size:0.82rem;">{fix}</span>
             </div>""", unsafe_allow_html=True)
+
+# ===========================================================================
+# FOOTER
+# ===========================================================================
+st.markdown(f"""
+<hr style="margin-top: 60px; margin-bottom: 10px; border: 0.5px solid {COLORS["mint"]};">
+
+<div style='text-align: center; font-size: 13px; color: {COLORS["charcoal"]}; padding-bottom: 10px;'>
+    <b>PharmaFlow Warehouse Analytics</b><br>
+    by Boikanyo Maswi © 2026
+</div>
+""", unsafe_allow_html=True)
