@@ -1,9 +1,6 @@
 # =============================================================================
-# docker-compose.yml
-# PharmaFlow Analytics — Full Stack
-#
 # Services:
-#   pharmaflow-db    PostgreSQL 15 — data warehouse (your existing container)
+#   pharmaflow-db    PostgreSQL 15 — data warehouse
 #   airflow-db       PostgreSQL 15 — Airflow metadata store
 #   airflow-init     One-time Airflow setup (DB init + admin user creation)
 #   airflow-webserver Airflow UI  → http://localhost:8080
@@ -67,8 +64,7 @@ x-airflow-common: &airflow-common
 services:
 
   # ---------------------------------------------------------------------------
-  # PharmaFlow Data Warehouse
-  # Reuses your existing named volume — all your data is preserved
+  # Reuses existing named volume (all data is preserved)
   # ---------------------------------------------------------------------------
   pharmaflow-db:
     image: postgres:15
@@ -93,7 +89,7 @@ services:
       - pharmaflow-network
 
   # ---------------------------------------------------------------------------
-  # Airflow Metadata Database (separate from your warehouse)
+  # Airflow Metadata Database (separate from warehouse)
   # ---------------------------------------------------------------------------
   airflow-db:
     image: postgres:15
@@ -117,7 +113,7 @@ services:
       - pharmaflow-network
 
   # ---------------------------------------------------------------------------
-  # Airflow Init — runs once to set up DB and create admin user
+  # Airflow Init (runs once to set up DB and create admin user)
   # ---------------------------------------------------------------------------
   airflow-init:
     <<: *airflow-common
@@ -179,7 +175,7 @@ services:
         condition: service_completed_successfully
 
   # ---------------------------------------------------------------------------
-  # Zookeeper — Kafka coordination service
+  # Zookeeper (Kafka dependency)
   # ---------------------------------------------------------------------------
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -207,7 +203,7 @@ services:
       - zookeeper
     ports:
       - "9092:9092"       # internal (producer/consumer inside Docker)
-      - "9093:9093"       # external (producer/consumer on your Mac)
+      - "9093:9093"       # external (producer/consumer on my Mac)
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
@@ -232,7 +228,7 @@ services:
       - pharmaflow-network
 
   # ---------------------------------------------------------------------------
-  # Kafka UI — browser-based topic/message viewer → http://localhost:8090
+  # Kafka UI (browser-based topic/message viewer) → http://localhost:8090
   # ---------------------------------------------------------------------------
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.1

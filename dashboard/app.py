@@ -1,7 +1,4 @@
 """
-dashboard/app.py
-PharmaFlow Analytics — Streamlit Dashboard
-
 Three tabs:
   1. Business Insights   — revenue, top medications, pharmacy performance
   2. Pipeline Health     — run history, row counts, success rates
@@ -21,7 +18,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ---------------------------------------------------------------------------
-# Page config — must be first Streamlit call
+# Page config
 # ---------------------------------------------------------------------------
 st.set_page_config(
     page_title="PharmaFlow Analytics",
@@ -33,17 +30,35 @@ st.set_page_config(
 st.markdown("""
 <style>
 
-[data-testid="stSidebar"] {
-    min-width: 280px;
-    max-width: 280px;
-}
-
-button[data-testid="collapsedControl"] {
-    display: none;
-}
-
-section[data-testid="stSidebar"] > div {
+/* --- FORCE SIDEBAR WIDTH --- */
+section[data-testid="stSidebar"] {
+    min-width: 280px !important;
+    max-width: 280px !important;
     width: 280px !important;
+}
+
+/* --- REMOVE COLLAPSE BUTTON COMPLETELY --- */
+button[kind="header"] {
+    display: none !important;
+}
+
+/* --- REMOVE TOOLTIP --- */
+div[data-baseweb="tooltip"] {
+    display: none !important;
+}
+
+/* --- PREVENT COLLAPSED STATE SHIFT --- */
+[data-testid="collapsedControl"] {
+    display: none !important;
+}
+
+section[data-testid="stSidebar"][aria-expanded="false"] {
+    transform: none !important;
+}
+
+/* --- ENSURE MAIN CONTENT DOESN’T SHIFT --- */
+.main {
+    margin-left: 280px !important;
 }
 
 </style>
@@ -441,7 +456,7 @@ if "Business Insights" in page:
 
         if not growth_df.empty:
 
-            # ---- DATA CLEANING (BEFORE FIGURE) ----
+            # ---- DATA CLEANING ----
             growth_df = growth_df.copy()
             growth_df['snapshot_date'] = pd.to_datetime(
                 growth_df['snapshot_date'], errors='coerce'
@@ -650,7 +665,6 @@ elif "Pipeline Health" in page:
 
         if not pipeline_daily_df.empty:
 
-            # ---- Data Type Cleaning ----
             pipeline_daily_df = pipeline_daily_df.copy()
             pipeline_daily_df['run_date'] = pd.to_datetime(
                 pipeline_daily_df['run_date'], errors='coerce'
@@ -723,7 +737,7 @@ elif "Pipeline Health" in page:
     st.markdown("<hr class='pf-divider'/>", unsafe_allow_html=True)
 
     # -----------------------------------------------------------------------
-    # CUMULATIVE GROWTH (THIS WAS CRASHING)
+    # CUMULATIVE GROWTH
     # -----------------------------------------------------------------------
     st.markdown("<div class='section-title'>Cumulative Records Loaded into Warehouse</div>", unsafe_allow_html=True)
 
@@ -731,7 +745,6 @@ elif "Pipeline Health" in page:
 
         growth_df = growth_df.copy()
 
-        # ---- CRITICAL FIX: Data Type Safety ----
         growth_df['snapshot_date'] = pd.to_datetime(
             growth_df['snapshot_date'], errors='coerce'
         )
@@ -749,7 +762,7 @@ elif "Pipeline Health" in page:
             x=growth_df['snapshot_date'],
             y=growth_df['cumulative_prescriptions'],
             fill='tozeroy',
-            fillcolor="rgba(27, 67, 50, 0.15)",  # SAFE RGBA (forest)
+            fillcolor="rgba(27, 67, 50, 0.15)",
             line=dict(color=COLORS["forest"], width=2.5),
             name='Cumulative Prescriptions',
             hovertemplate="<b>%{x}</b><br>Total: %{y:,}<extra></extra>",
