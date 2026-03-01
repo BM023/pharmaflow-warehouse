@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# kafka/setup_topics.sh
-# PharmaFlow Analytics — Kafka Topic Setup
-#
+# Kafka Topic Setup
 # Creates all required topics with correct partition counts.
 # Run once after Kafka starts for the first time.
 #

@@ -1,7 +1,5 @@
 """
-kafka/kafka_config.py
-PharmaFlow Analytics — Kafka Configuration
-
+Kafka Configuration
 Shared configuration for all producers and consumers.
 """
 

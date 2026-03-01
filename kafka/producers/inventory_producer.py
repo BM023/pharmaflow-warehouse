@@ -1,7 +1,5 @@
 """
-kafka/producers/inventory_producer.py
-PharmaFlow Analytics — Inventory Update Producer
-
+Inventory Update Producer
 Simulates real-time stock level change events (dispensing reduces stock,
 deliveries increase it) and publishes to pharmaflow.inventory topic.
 

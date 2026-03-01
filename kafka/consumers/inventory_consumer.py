@@ -1,7 +1,5 @@
 """
-kafka/consumers/inventory_consumer.py
-PharmaFlow Analytics — Inventory Event Consumer
-
+Inventory Event Consumer
 Reads inventory snapshot events and writes to:
     raw_data/YYYY-MM-DD/inventory_snapshot_YYYY-MM-DD.xlsx
 

@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# kafka/run_demo.sh
-# PharmaFlow Analytics — Kafka Streaming Demo
-#
+# Kafka Streaming Demo
 # Starts all producers and consumers in parallel for a live demo.
 # Each process logs to logs/kafka_<name>_<date>.log
 #

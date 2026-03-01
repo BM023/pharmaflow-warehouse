@@ -1,7 +1,5 @@
 """
-kafka/consumers/prescription_consumer.py
-PharmaFlow Analytics — Prescription Event Consumer
-
+Prescription Event Consumer
 Reads prescription events from pharmaflow.prescriptions topic and
 accumulates them into a daily CSV file at:
     raw_data/YYYY-MM-DD/prescriptions_YYYY-MM-DD.csv

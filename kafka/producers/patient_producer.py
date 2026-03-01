@@ -1,7 +1,5 @@
 """
-kafka/producers/patient_producer.py
-PharmaFlow Analytics — New Patient Registration Producer
-
+New Patient Registration Producer
 Simulates real-time patient registration events at pharmacy counters.
 
 Usage:

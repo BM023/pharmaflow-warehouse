@@ -1,7 +1,5 @@
 """
-kafka/consumers/patient_consumer.py
-PharmaFlow Analytics — Patient Registration Consumer
-
+Patient Registration Consumer
 Reads patient registration events and appends to:
     raw_data/YYYY-MM-DD/new_patients.csv
 

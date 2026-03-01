@@ -1,7 +1,5 @@
 """
-kafka/producers/prescription_producer.py
-PharmaFlow Analytics — Prescription Event Producer
-
+Prescription Event Producer
 Simulates real-time prescription dispensing events across 5 pharmacy
 locations and publishes them to the pharmaflow.prescriptions Kafka topic.
 

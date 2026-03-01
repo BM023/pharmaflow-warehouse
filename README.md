@@ -4,7 +4,11 @@
 
 A complete data engineering portfolio project simulating a mid-sized pharmacy chain across 5 Johannesburg locations. Covers the full data engineering stack: warehouse design, multi-format ETL, shell automation, Apache Airflow orchestration, real-time Kafka streaming, database administration, and a live analytics dashboard.
 
-> 📸 **ADD SCREENSHOT:** Add an architecture diagram here showing the full pipeline flow
+> Streamlit dashboard — Business Insights tab
+<img width="1340" height="591" alt="Dashboard" src="images/dash-ui.png" />
+
+> Architecture diagram showing full pipeline flow
+<img width="1340" height="591" alt="Project Architecture" src="images/architecture.png" />
 
 ---
 
@@ -25,6 +29,7 @@ A complete data engineering portfolio project simulating a mid-sized pharmacy ch
 ## Project Overview
 
 **Company:** PharmaFlow
+
 **Locations:** 5 pharmacies serving diverse Johannesburg demographics
 
 | Location | Demographic Profile |
@@ -48,47 +53,47 @@ A complete data engineering portfolio project simulating a mid-sized pharmacy ch
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     DATA SOURCES                                │
+│                          DATA SOURCES                           │
 │   CSV (prescriptions)  │  Excel (inventory)  │  JSON (catalog)  │
 └──────────────┬──────────────────────────────────────────────────┘
                │  raw_data/YYYY-MM-DD/
                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│              KAFKA STREAMING LAYER                              │
+│                      KAFKA STREAMING LAYER                      │
 │   4 Producers → 4 Topics (5 partitions each) → 4 Consumers      │
 │   prescriptions │ inventory │ patients │ deliveries             │
 └──────────────┬──────────────────────────────────────────────────┘
                │  writes to raw_data/
                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│           SHELL INGESTION LAYER                                 │
+│                       SHELL INGESTION LAYER                     │
 │   monitor_files.sh → process_file.sh → staging/ → archive/      │
 └──────────────┬──────────────────────────────────────────────────┘
                │
                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│              PYTHON ETL PIPELINE                                │
+│                       PYTHON ETL PIPELINE                       │
 │   extract.py → transform.py → validate → load.py                │
 │   Multi-format readers │ 8 quality fixes │ SCD Type 2           │
 └──────────────┬──────────────────────────────────────────────────┘
                │
                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│           AIRFLOW ORCHESTRATION                                 │
+│                      AIRFLOW ORCHESTRATION                      │
 │   FileSensor → extract → transform → validate → load →          │
 │   cleanup → notify  │  Daily 06:30  │  Email alerts             │
 └──────────────┬──────────────────────────────────────────────────┘
                │
                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│         POSTGRESQL DATA WAREHOUSE                               │
+│                    POSTGRESQL DATA WAREHOUSE                    │
 │   4 Fact Tables │ 8 Dimension Tables │ Star Schema              │
 │   Partitioned by year │ 30+ indexes │ SCD Type 2 patients       │
 └──────────────┬──────────────────────────────────────────────────┘
                │
                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│           STREAMLIT DASHBOARD                                   │
+│                       STREAMLIT DASHBOARD                       │
 │   Business Insights │ Pipeline Health │ Data Quality            │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -113,11 +118,13 @@ A complete data engineering portfolio project simulating a mid-sized pharmacy ch
 - **Demographics:** Location-based inventory and sales patterns
 - **Automation:** Scheduled daily processing with cron jobs
 
-> 📸 **Screenshot** Airflow DAG graph view showing the 8-task pipeline
+> Airflow DAG graph view showing the 8-task pipeline
 
-> 📸 **Screenshot** Streamlit dashboard — Business Insights tab
+<img width="1340" height="591" alt="Airflow" src="images/airflow-ui.png" />
 
-> 📸 **Screenshot** Kafka UI showing the 4 topics with message counts
+
+> Kafka UI showing the 4 topics with message counts
+<img width="1340" height="591" alt="Kafka" src="images/kafka-ui.png" />
 
 ---
 
@@ -414,7 +421,8 @@ docker exec -i pharmaflow-db psql -U pharmaflow -d pharmaflow_warehouse \
 
 ## Data Warehouse Schema
 
-> 📸 **Screenshot suggestion:** Star schema diagram (can be generated from DBeaver or pgAdmin using the ERD tool)
+> Star schema diagram
+<img width="400" height="1340" alt="Project Architecture" src="images/PharmaFlow.png" />
 
 ### Dimension Tables
 

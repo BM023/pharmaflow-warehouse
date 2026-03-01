@@ -1,7 +1,5 @@
 """
-kafka/producers/delivery_producer.py
-PharmaFlow Analytics — Supplier Delivery Event Producer
-
+Supplier Delivery Event Producer
 Simulates real-time supplier delivery arrival events at pharmacy locations.
 
 Usage:

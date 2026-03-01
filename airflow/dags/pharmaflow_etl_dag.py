@@ -1,6 +1,5 @@
 """
-airflow/dags/pharmaflow_etl_dag.py
-PharmaFlow Analytics — Airflow DAG
+Airflow DAG
 
 Pipeline: file_sensor → extract → transform → validate → load → cleanup → notify
 
@@ -21,7 +20,7 @@ from airflow.sensors.filesystem import FileSensor
 from airflow.utils.dates import days_ago
 
 # ---------------------------------------------------------------------------
-# Path setup — make ETL modules importable inside Airflow containers
+# Path setup (make ETL modules importable inside Airflow containers)
 # ---------------------------------------------------------------------------
 sys.path.insert(0, '/opt/airflow')
 
@@ -98,7 +97,7 @@ Processes daily pharmacy transaction files through a full ETL lifecycle.
     )
 
     # -----------------------------------------------------------------------
-    # Task 2: File sensor — waits up to 30 min for prescription file
+    # Task 2: File sensor (waits up to 30 min for prescription file)
     # -----------------------------------------------------------------------
     wait_for_prescription_file = FileSensor(
         task_id='wait_for_prescription_file',
@@ -262,7 +261,7 @@ Processes daily pharmacy transaction files through a full ETL lifecycle.
     )
 
     # -----------------------------------------------------------------------
-    # Task 7: Cleanup — archive files, rotate logs
+    # Task 7: Cleanup (archive files, rotate logs)
     # -----------------------------------------------------------------------
     cleanup = BashOperator(
         task_id='cleanup',
@@ -271,7 +270,7 @@ Processes daily pharmacy transaction files through a full ETL lifecycle.
     )
 
     # -----------------------------------------------------------------------
-    # Task 8: Notify — log pipeline summary
+    # Task 8: Notify (log pipeline summary)
     # -----------------------------------------------------------------------
     def notify_task(**context):
         """Log final pipeline summary to Airflow logs and pipeline_runs table."""
@@ -298,6 +297,6 @@ Processes daily pharmacy transaction files through a full ETL lifecycle.
     )
 
     # -----------------------------------------------------------------------
-    # Task dependencies — the DAG graph
+    # Task dependencies (DAG graph)
     # -----------------------------------------------------------------------
     generate_files >> wait_for_prescription_file >> extract >> transform >> validate >> load >> cleanup >> notify
