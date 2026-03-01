@@ -18,6 +18,7 @@ A complete data engineering portfolio project simulating a mid-sized pharmacy ch
 - [Technical Architecture](#technical-architecture)
 - [Technology Stack](#technology-stack)
 - [Project Structure](#project-structure)
+- [Deployment](#deployment)
 - [Setup Instructions](#setup-instructions)
 - [Pipeline Walkthrough](#pipeline-walkthrough)
 - [Data Warehouse Schema](#data-warehouse-schema)
@@ -141,6 +142,7 @@ A complete data engineering portfolio project simulating a mid-sized pharmacy ch
 | **Dashboard** | Streamlit + Plotly |
 | **Python Libraries** | pandas, psycopg2, kafka-python, Faker, openpyxl, python-dotenv |
 | **Version Control** | Git / GitHub |
+| **VDeployment** | Neon (serverless) + Streamlit Cloud |
 
 ---
 
@@ -270,7 +272,44 @@ pharmaflow_warehouse/
 ├── .env.example                        # Template for .env — safe to commit
 └── .gitignore                          # Excludes venv, logs, raw_data, backups, .env
 ```
+---
+## Deployment
 
+### Cloud Architecture
+The production deployment uses two managed cloud services:
+
+| Component | Platform | URL |
+|---|---|---|
+| PostgreSQL Warehouse | Neon (serverless) | `ep-proud-mode-aighqtp8-pooler.c-4.us-east-1.aws.neon.tech` |
+| Analytics Dashboard | Streamlit Cloud | https://pharmaflow-warehouse-dashboard.streamlit.app |
+| Source Code | GitHub | https://github.com/BM023/pharmaflow-warehouse |
+
+---
+
+### Environment Variables
+
+| Variable | Used by | Description |
+|---|---|---|
+| `DATABASE_URL` | Streamlit Cloud | Full Neon connection string |
+| `PHARMAFLOW_DB_HOST` | Airflow (Docker) | Set to `pharmaflow-db` inside containers |
+| `PHARMAFLOW_DB_PORT` | Airflow (Docker) | Set to `5432` inside containers |
+| `DB_HOST` | Local runs | Defaults to `localhost` |
+| `DB_PORT` | Local runs | Defaults to `5433` |
+
+> ⚠️ Never commit `.env` to version control. A `.env.example` template is provided.
+
+---
+
+### Local vs Cloud at a Glance
+```
+Local Development                    Cloud Production
+─────────────────────                ────────────────────
+Docker pharmaflow-db:5433    →       Neon PostgreSQL
+Airflow localhost:8080        →       (run locally only)
+Kafka localhost:9093          →       (run locally only)
+Kafka UI localhost:8090       →       (run locally only)
+streamlit run dashboard/app.py →     pharmaflow-warehouse-dashboard.streamlit.app
+```
 ---
 
 ## Setup Instructions
@@ -423,7 +462,6 @@ docker exec -i pharmaflow-db psql -U pharmaflow -d pharmaflow_warehouse \
 
 > Star schema diagram
 <img width="1340" height="1800" alt="Project Architecture" src="images/PharmaFlow.png" />
-"1340" height="591"
 
 ### Dimension Tables
 
