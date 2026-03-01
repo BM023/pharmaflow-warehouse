@@ -1,6 +1,5 @@
 -- =============================================================================
--- sql/admin/partitioning.sql
--- PharmaFlow Analytics — Table Partitioning
+-- Table Partitioning
 --
 -- Partitions fact_prescription_transactions by year using PostgreSQL
 -- declarative partitioning (RANGE on transaction_date_key).

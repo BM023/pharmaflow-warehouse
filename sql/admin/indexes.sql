@@ -1,6 +1,5 @@
 -- =============================================================================
--- sql/admin/indexes.sql
--- PharmaFlow Analytics — Index Audit & Optimisation
+-- Index Audit & Optimisation
 --
 -- Adds indexes optimised for the most common analytical query patterns:
 --   1. Time-series queries (by date range)

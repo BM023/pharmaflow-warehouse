@@ -422,7 +422,8 @@ docker exec -i pharmaflow-db psql -U pharmaflow -d pharmaflow_warehouse \
 ## Data Warehouse Schema
 
 > Star schema diagram
-<img width="400" height="1340" alt="Project Architecture" src="images/PharmaFlow.png" />
+<img width="1340" height="1800" alt="Project Architecture" src="images/PharmaFlow.png" />
+"1340" height="591"
 
 ### Dimension Tables
 

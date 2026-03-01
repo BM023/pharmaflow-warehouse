@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# sql/admin/backup.sh
-# PharmaFlow Analytics — Automated Database Backup
+# Automated Database Backup
 #
 # Creates compressed pg_dump backups of the pharmaflow_warehouse database.
 #

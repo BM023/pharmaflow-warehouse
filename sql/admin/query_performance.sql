@@ -1,6 +1,5 @@
 -- =============================================================================
--- sql/admin/query_performance.sql
--- PharmaFlow Analytics — Query Performance Analysis
+-- Query Performance Analysis
 --
 -- Runs EXPLAIN ANALYZE on the most common dashboard and analytical queries.
 -- Use this to:
