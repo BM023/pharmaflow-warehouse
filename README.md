@@ -280,7 +280,7 @@ The production deployment uses two managed cloud services:
 
 | Component | Platform | URL |
 |---|---|---|
-| PostgreSQL Warehouse | Neon (serverless) | `ep-proud-mode-aighqtp8-pooler.c-4.us-east-1.aws.neon.tech` |
+| PostgreSQL Warehouse | Neon (serverless) | https://console.neon.tech/app/projects/damp-bread-73195227 |
 | Analytics Dashboard | Streamlit Cloud | https://pharmaflow-warehouse-dashboard.streamlit.app |
 | Source Code | GitHub | https://github.com/BM023/pharmaflow-warehouse |
 
