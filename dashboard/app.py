@@ -56,7 +56,7 @@ section[data-testid="stSidebar"][aria-expanded="false"] {
     transform: none !important;
 }
 
-/* --- ENSURE MAIN CONTENT DOESN’T SHIFT --- */
+/* --- ENSURE MAIN CONTENT DOESN'T SHIFT --- */
 .main {
     margin-left: 280px !important;
 }
@@ -324,23 +324,87 @@ with st.sidebar:
     )
 
     st.markdown("<hr/>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.72rem; letter-spacing:0.1em; text-transform:uppercase; opacity:0.6; margin-bottom:0.6rem;'>Filters</div>", unsafe_allow_html=True)
+
+    if "Business Insights" in page:
+        # Date range
+        try:
+            date_bounds = query("SELECT MIN(snapshot_date) AS min_d, MAX(snapshot_date) AS max_d FROM dwh.v_warehouse_growth")
+            import datetime as _dt
+            min_date = pd.to_datetime(date_bounds['min_d'].iloc[0]).date()
+            max_date = pd.to_datetime(date_bounds['max_d'].iloc[0]).date()
+        except Exception:
+            import datetime as _dt
+            min_date = _dt.date(2024, 1, 1)
+            max_date = _dt.date.today()
+
+        st.markdown("<div style='font-size:0.75rem; opacity:0.7; margin-bottom:2px;'>Date range</div>", unsafe_allow_html=True)
+        date_from = st.date_input("From", value=min_date, min_value=min_date, max_value=max_date, key="date_from", label_visibility="collapsed")
+        date_to   = st.date_input("To",   value=max_date, min_value=min_date, max_value=max_date, key="date_to",   label_visibility="collapsed")
+
+        st.markdown("<div style='font-size:0.75rem; opacity:0.7; margin-top:0.6rem; margin-bottom:2px;'>Pharmacy</div>", unsafe_allow_html=True)
+        try:
+            ph_list = query("SELECT DISTINCT location_name FROM dwh.dim_pharmacy ORDER BY location_name")
+            ph_options = ["All Locations"] + ph_list['location_name'].tolist()
+        except Exception:
+            ph_options = ["All Locations"]
+        selected_pharmacy = st.selectbox("Pharmacy", ph_options, label_visibility="collapsed")
+
+        st.markdown("<div style='font-size:0.75rem; opacity:0.7; margin-top:0.6rem; margin-bottom:2px;'>Therapeutic class</div>", unsafe_allow_html=True)
+        try:
+            cls_list = query("SELECT DISTINCT therapeutic_class FROM dwh.dim_medication WHERE therapeutic_class IS NOT NULL ORDER BY therapeutic_class")
+            cls_options = ["All Classes"] + cls_list['therapeutic_class'].tolist()
+        except Exception:
+            cls_options = ["All Classes"]
+        selected_class = st.selectbox("Class", cls_options, label_visibility="collapsed")
+
+        st.markdown("<div style='font-size:0.75rem; opacity:0.7; margin-top:0.6rem; margin-bottom:2px;'>Top N medications</div>", unsafe_allow_html=True)
+        top_n = st.slider("Top N", min_value=5, max_value=20, value=15, step=5, label_visibility="collapsed")
+
+    elif "Pipeline Health" in page:
+        st.markdown("<div style='font-size:0.75rem; opacity:0.7; margin-bottom:2px;'>Days of history</div>", unsafe_allow_html=True)
+        pipeline_days = st.slider("Days", min_value=7, max_value=90, value=30, step=7, label_visibility="collapsed")
+
+    elif "Data Quality" in page:
+        st.markdown("<div style='font-size:0.75rem; opacity:0.7; margin-bottom:2px;'>Dataset</div>", unsafe_allow_html=True)
+        try:
+            ds_list = query("SELECT DISTINCT dataset FROM dwh.data_quality_log ORDER BY dataset")
+            ds_options = ["All Datasets"] + ds_list['dataset'].tolist()
+        except Exception:
+            ds_options = ["All Datasets"]
+        selected_dataset = st.selectbox("Dataset", ds_options, label_visibility="collapsed")
+
+        st.markdown("<div style='font-size:0.75rem; opacity:0.7; margin-top:0.6rem; margin-bottom:2px;'>Severity</div>", unsafe_allow_html=True)
+        selected_severity = st.selectbox("Severity", ["All Severities", "CRITICAL", "WARNING", "INFO"], label_visibility="collapsed")
+
+    else:
+        # defaults so variables always exist
+        selected_pharmacy = "All Locations"
+        selected_class    = "All Classes"
+        top_n             = 15
+        pipeline_days     = 30
+        selected_dataset  = "All Datasets"
+        selected_severity = "All Severities"
+
+    st.markdown("<hr/>", unsafe_allow_html=True)
 
     try:
-        kpi = query("SELECT * FROM dwh.v_business_kpis LIMIT 1")
-        if not kpi.empty:
-            data_from = pd.to_datetime(kpi['data_from'].iloc[0]).strftime('%d %b %Y')
-            data_to   = pd.to_datetime(kpi['data_to'].iloc[0]).strftime('%d %b %Y')
+        kpi_sidebar = query("SELECT * FROM dwh.v_business_kpis LIMIT 1")
+        if not kpi_sidebar.empty:
+            data_from_lbl = pd.to_datetime(kpi_sidebar['data_from'].iloc[0]).strftime('%d %b %Y')
+            data_to_lbl   = pd.to_datetime(kpi_sidebar['data_to'].iloc[0]).strftime('%d %b %Y')
             st.markdown(f"""
             <div style='font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; opacity:0.6; margin-bottom:0.6rem;'>Data Range</div>
-            <div style='font-size:0.85rem; opacity:0.9;'>{data_from}</div>
+            <div style='font-size:0.85rem; opacity:0.9;'>{data_from_lbl}</div>
             <div style='font-size:0.72rem; opacity:0.5; margin: 2px 0;'>to</div>
-            <div style='font-size:0.85rem; opacity:0.9;'>{data_to}</div>
+            <div style='font-size:0.85rem; opacity:0.9;'>{data_to_lbl}</div>
             """, unsafe_allow_html=True)
     except Exception:
         st.markdown("<div style='font-size:0.8rem; opacity:0.6;'>⚠ DB not connected</div>", unsafe_allow_html=True)
 
     st.markdown("<hr/>", unsafe_allow_html=True)
     st.markdown(f"<div style='font-size:0.7rem; opacity:0.45; text-align:center;'>Last refreshed<br/>{datetime.now().strftime('%H:%M · %d %b %Y')}</div>", unsafe_allow_html=True)
+
 
 
 # ---------------------------------------------------------------------------
@@ -356,28 +420,79 @@ st.markdown(f"""
 
 
 # ---------------------------------------------------------------------------
-# Load data
+# Load data  (filter-aware)
 # ---------------------------------------------------------------------------
 try:
-    kpi_df            = query("SELECT * FROM dwh.v_business_kpis LIMIT 1")
-    pharmacy_df       = query("SELECT * FROM dwh.v_revenue_by_pharmacy")
-    medications_df    = query("SELECT * FROM dwh.v_top_medications LIMIT 20")
-    growth_df         = query("SELECT * FROM dwh.v_warehouse_growth ORDER BY snapshot_date")
-    stock_alerts_df   = query("SELECT * FROM dwh.v_stock_alerts")
-    
+    kpi_df         = query("SELECT * FROM dwh.v_business_kpis LIMIT 1")
+    stock_alerts_df= query("SELECT * FROM dwh.v_stock_alerts")
+
+    # Growth — filtered by date range (Business Insights only)
+    if "Business Insights" in page:
+        _date_from = str(date_from)
+        _date_to   = str(date_to)
+    else:
+        _date_from = "2000-01-01"
+        _date_to   = "2099-12-31"
+
+    growth_df = query(f"""
+        SELECT * FROM dwh.v_warehouse_growth
+        WHERE snapshot_date BETWEEN '{_date_from}' AND '{_date_to}'
+        ORDER BY snapshot_date
+    """)
+
+    # Pharmacy revenue — optionally filtered
+    if "Business Insights" in page and selected_pharmacy != "All Locations":
+        pharmacy_df = query(f"""
+            SELECT * FROM dwh.v_revenue_by_pharmacy
+            WHERE location_name = '{selected_pharmacy}'
+        """)
+    else:
+        pharmacy_df = query("SELECT * FROM dwh.v_revenue_by_pharmacy")
+
+    # Medications — optionally filtered by class, with top_n
+    if "Business Insights" in page and selected_class != "All Classes":
+        medications_df = query(f"""
+            SELECT * FROM dwh.v_top_medications
+            WHERE therapeutic_class = '{selected_class}'
+            LIMIT {top_n if "Business Insights" in page else 20}
+        """)
+    else:
+        medications_df = query(f"SELECT * FROM dwh.v_top_medications LIMIT {top_n if 'Business Insights' in page else 20}")
+
+    # Pipeline — filtered by days slider
+    _days = pipeline_days if "Pipeline Health" in page else 30
     pipeline_sum_df   = query("SELECT * FROM dwh.v_pipeline_summary LIMIT 1")
-    pipeline_daily_df = query("SELECT * FROM dwh.v_pipeline_daily ORDER BY run_date DESC LIMIT 30")
-    pipeline_runs_df  = query("SELECT * FROM dwh.pipeline_runs ORDER BY started_at DESC LIMIT 20")
-    
-    dq_summary_df     = query("SELECT * FROM dwh.v_data_quality_summary ORDER BY run_date DESC, dataset")
-    dq_trend_df       = query("SELECT * FROM dwh.v_quality_trend ORDER BY run_date")
-    dq_log_df         = query("""
-                            SELECT run_date, dataset, check_name, check_category,
-                                rows_checked, rows_failed, failure_rate_pct,
-                                severity, details
-                            FROM dwh.data_quality_log
-                            ORDER BY run_date DESC, severity DESC, dataset
-                        """)
+    pipeline_daily_df = query(f"""
+        SELECT * FROM dwh.v_pipeline_daily
+        WHERE run_date >= CURRENT_DATE - INTERVAL '{_days} days'
+        ORDER BY run_date DESC
+    """)
+    pipeline_runs_df  = query(f"""
+        SELECT * FROM dwh.pipeline_runs
+        WHERE started_at >= CURRENT_DATE - INTERVAL '{_days} days'
+        ORDER BY started_at DESC
+    """)
+
+    # Data quality — filtered by dataset / severity
+    _dq_where_parts = []
+    if "Data Quality" in page:
+        if selected_dataset != "All Datasets":
+            _dq_where_parts.append(f"dataset = '{selected_dataset}'")
+        if selected_severity != "All Severities":
+            _dq_where_parts.append(f"severity = '{selected_severity}'")
+    _dq_where = ("WHERE " + " AND ".join(_dq_where_parts)) if _dq_where_parts else ""
+
+    dq_summary_df = query("SELECT * FROM dwh.v_data_quality_summary ORDER BY run_date DESC, dataset")
+    dq_trend_df   = query("SELECT * FROM dwh.v_quality_trend ORDER BY run_date")
+    dq_log_df     = query(f"""
+        SELECT run_date, dataset, check_name, check_category,
+               rows_checked, rows_failed, failure_rate_pct,
+               severity, details
+        FROM dwh.data_quality_log
+        {_dq_where}
+        ORDER BY run_date DESC, severity DESC, dataset
+    """)
+
     db_connected = True
 
 except Exception as e:
@@ -386,10 +501,27 @@ except Exception as e:
     st.stop()
 
 
+
 # ===========================================================================
 # TAB 1: BUSINESS INSIGHTS
 # ===========================================================================
 if "Business Insights" in page:
+
+    # Active filter banner
+    active_filters = []
+    if selected_pharmacy != "All Locations":
+        active_filters.append(f"📍 {selected_pharmacy}")
+    if selected_class != "All Classes":
+        active_filters.append(f"💊 {selected_class}")
+    if "date_from" in dir():
+        active_filters.append(f"📅 {date_from} → {date_to}")
+    if active_filters:
+        st.markdown(
+            f"<div style='background:{COLORS["mist"]}; border-left:3px solid {COLORS["fern"]}; "
+            f"border-radius:4px; padding:0.4rem 0.8rem; font-size:0.82rem; color:{COLORS["forest"]}; margin-bottom:0.8rem;'>"
+            f"<b>Active filters:</b> {'  ·  '.join(active_filters)}</div>",
+            unsafe_allow_html=True
+        )
 
     kpi = kpi_df.iloc[0] if not kpi_df.empty else {}
 
@@ -515,22 +647,22 @@ if "Business Insights" in page:
     col1, col2 = st.columns([1.6, 1])
 
     with col1:
-        st.markdown("<div class='section-title'>Top 15 Medications by Prescription Volume</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='section-title'>Top {top_n} Medications by Prescription Volume</div>", unsafe_allow_html=True)
         if not medications_df.empty:
-            top15 = medications_df.head(15).sort_values('prescription_count')
+            top_df = medications_df.head(top_n).sort_values('prescription_count')
             fig = go.Figure(go.Bar(
-                x=top15['prescription_count'],
-                y=top15['medication_name'],
+                x=top_df['prescription_count'],
+                y=top_df['medication_name'],
                 orientation='h',
                 marker=dict(
-                    color=top15['prescription_count'],
+                    color=top_df['prescription_count'],
                     colorscale=[[0, COLORS["mint"]], [0.5, COLORS["teal_light"]], [1, COLORS["teal"]]],
                     showscale=False,
                 ),
-                text=top15['prescription_count'],
+                text=top_df['prescription_count'],
                 textposition='outside',
                 textfont=dict(size=10),
-                customdata=top15[['therapeutic_class', 'total_revenue']].values,
+                customdata=top_df[['therapeutic_class', 'total_revenue']].values,
                 hovertemplate="<b>%{y}</b><br>Prescriptions: %{x}<br>Class: %{customdata[0]}<br>Revenue: R %{customdata[1]:,.0f}<extra></extra>",
             ))
             chart_layout(fig, height=440, has_axes=True)
@@ -606,6 +738,14 @@ if "Business Insights" in page:
 # TAB 2: PIPELINE HEALTH
 # ===========================================================================
 elif "Pipeline Health" in page:
+
+    # Active filter banner
+    st.markdown(
+        f"<div style='background:{COLORS["mist"]}; border-left:3px solid {COLORS["fern"]}; "
+        f"border-radius:4px; padding:0.4rem 0.8rem; font-size:0.82rem; color:{COLORS["forest"]}; margin-bottom:0.8rem;'>"
+        f"<b>Showing:</b> last {pipeline_days} days of pipeline history</div>",
+        unsafe_allow_html=True
+    )
 
     # -----------------------------------------------------------------------
     # SAFETY: Ensure DataFrames exist
@@ -800,6 +940,15 @@ elif "Pipeline Health" in page:
             'started_at': 'Started At',
         })
 
+        col_dl2, col_sp2 = st.columns([1, 4])
+        with col_dl2:
+            csv_runs = display_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="⬇ Export CSV",
+                data=csv_runs,
+                file_name=f"pharmaflow_pipeline_runs_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+            )
         st.dataframe(display_df, use_container_width=True, hide_index=True)
 
     else:
@@ -812,6 +961,20 @@ elif "Pipeline Health" in page:
 # TAB 3: DATA QUALITY
 # ===========================================================================
 elif "Data Quality" in page:
+
+    # Active filter banner
+    dq_active = []
+    if selected_dataset != "All Datasets":
+        dq_active.append(f"📦 {selected_dataset}")
+    if selected_severity != "All Severities":
+        dq_active.append(f"🚨 {selected_severity}")
+    if dq_active:
+        st.markdown(
+            f"<div style='background:{COLORS["mist"]}; border-left:3px solid {COLORS["fern"]}; "
+            f"border-radius:4px; padding:0.4rem 0.8rem; font-size:0.82rem; color:{COLORS["forest"]}; margin-bottom:0.8rem;'>"
+            f"<b>Active filters:</b> {'  ·  '.join(dq_active)}</div>",
+            unsafe_allow_html=True
+        )
 
     if not dq_summary_df.empty:
         total_checked = dq_summary_df['total_rows_checked'].sum()
@@ -900,7 +1063,15 @@ elif "Data Quality" in page:
 
     st.markdown("<div class='section-title'>Quality Issue Log</div>", unsafe_allow_html=True)
     if not dq_log_df.empty:
-        st.dataframe(dq_log_df, use_container_width=True, hide_index=True)
+        col_dl, col_spacer = st.columns([1, 4])
+        with col_dl:
+            csv_data = dq_log_df.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="⬇ Export CSV",
+                data=csv_data,
+                file_name=f"pharmaflow_quality_log_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+            )
 
     if not dq_log_df.empty:
         def severity_badge(sev):
